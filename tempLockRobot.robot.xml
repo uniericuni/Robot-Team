@@ -1,2 +1,9 @@
-<Robot name="LockRobotTemplate">
-<Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot1" /><Joint enable="false" name="0-to-1" type="hinge"><Body>3 3</Body><Body /><limiits /></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot2" /><Joint enable="false" name="1-to-2" type="hinge"><Body>3 3</Body><Body /><limiits /></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot3" /><Joint enable="false" name="2-to-3" type="hinge"><Body>3 3</Body><Body /><limiits /></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot4" /><Joint enable="false" name="3-to-4" type="hinge"><Body>3 3</Body><Body /><limiits /></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot5" /><Joint enable="false" name="4-to-5" type="hinge"><Body>3 3</Body><Body /><limiits /></Joint></Robot>
+<KinBody name="BallBot">
+    <Body name="Base" type="dynamic">
+        <Translation>0.0 0.0 0.0</Translation>
+        <Geom type="sphere">
+            <rotationaxis>1 0 0 360</rotationaxis>
+            <radius>0.3</radius>
+        </Geom>
+    </Body>
+<Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot1" /><Joint enable="false" name="0-to-1" type="hinge"><Body>robot0</Body><Body>robot1</Body><limiits>3.141593 3.141593</limiits></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot2" /><Joint enable="false" name="1-to-2" type="hinge"><Body>robot1</Body><Body>robot2</Body><limiits>3.141593 3.141593</limiits></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot3" /><Joint enable="false" name="2-to-3" type="hinge"><Body>robot2</Body><Body>robot3</Body><limiits>3.141593 3.141593</limiits></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot4" /><Joint enable="false" name="3-to-4" type="hinge"><Body>robot3</Body><Body>robot4</Body><limiits>3.141593 3.141593</limiits></Joint><Kinbody file="/usr/local/share/openrave-0.9/robots/ball.kinbody.xml" name="robot5" /><Joint enable="false" name="4-to-5" type="hinge"><Body>robot4</Body><Body>robot5</Body><limiits>3.141593 3.141593</limiits></Joint></KinBody>

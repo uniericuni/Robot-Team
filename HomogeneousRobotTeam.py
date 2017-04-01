@@ -1,13 +1,16 @@
 import openravepy
 import xml.etree.ElementTree as ET
+import os
+
 from config import *
 
 class HomogeneousRobotTeam:
 
     # initialization
-    def __init__(self, env, instance_xml,   
-                       instance_number,
-                       lock_xml,
+    def __init__(self, env,                     # openrave environment
+                       instance_xml,            # file path to the model of homogeneous robot
+                       instance_number,         # number of robot to initaite
+                       lock_xml,                # file path to store temporary robot team model
                        joint_type ):            # joint type: chain, central distributed, network 
 
         # system parameters
@@ -28,7 +31,7 @@ class HomogeneousRobotTeam:
     # TODO: destructor calling unlock()
 
     # lock robot team into a single .xml and bind by joints
-    def lock(self, xml_template, base_config, configs=None, enforced=True):
+    def lock(self, xml_template, base_config, configs=None, enforced=True, print_out=False):
 
         # enforce robots to certain configurations
         if enforced:
@@ -40,16 +43,18 @@ class HomogeneousRobotTeam:
 
         # xml element tree initialization
         # tree = ET.parse(LOCK_ROBOT_TEMPLATE)
-        tree = ET.parse(LOCK_ROBOT_TEMPLATE)
+        tree = ET.parse(self.instance_xml)
         root = tree.getroot()
         base = ET.Element('Kinbody', {'name': 'robot0'})
         prev_node = base
 
         # lock robots
+        # TODO: instantiate virtual robot0
         # TODO: joint type
         for i,robot in enumerate(self.robots):
      
             # create elements
+            print robot.GetTransform()
             node = ET.Element('Kinbody', {'name': 'robot%d'%(i+1),
                                           'file': self.instance_xml})
             joint = ET.Element('Joint',  {'enable': 'false',
@@ -58,9 +63,9 @@ class HomogeneousRobotTeam:
             body1 = ET.Element('Body')
             body1.text = 'robot%d'%(i)
             body2 = ET.Element('Body')
-            body1.text = 'robot%d'%(i+1)
+            body2.text = 'robot%d'%(i+1)
             limit = ET.Element('limiits')
-            body1.text = '%d %d'%(PI,PI)
+            limit.text = '%f %f'%(PI,PI)
 
             # TODO: set initial configuration
            
@@ -74,19 +79,26 @@ class HomogeneousRobotTeam:
             # robot iter
             prev_node = node
 
-        tree.write(TEMPORARY_LOCK_ROBOT)
-        ET.dump(root)
+        tree.write(self.lock_xml)
+        if print_out:
+            ET.dump(root)
      
         # TODO: deinfe manipulator
      
         # return lockded system
-        lock_robot = self.env.ReadRobotURI(self.lock_xml)
+        print self.lock_xml
+        lock_robot = self.env.ReadRobotURI(TEMPORARY_LOCK_ROBOT)
+        
         self.env.AddRobot(lock_robot)
         self.lock_robot = self.env.GetRobots()[0]
      
-    # TODO: unlock robot team and destroy temporary .xml
+    # unlock robot team and destroy temporary .xml
     def unLockRobots(self):
-        pass
+        
+        # delete the temporary robot group model
+        os.remove(self.lock_xml)
+
+        # restore robot configuration
 
     # TODO: enforce configurations
     def enforce(self):
