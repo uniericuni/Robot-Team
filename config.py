@@ -12,3 +12,14 @@ TEMPORARY_LOCK_ROBOT = '/media/sf_Share/Final/tempLockRobot.robot.xml'
 
 # intance robot path
 INSTANCE_ROBOT = MODELS + 'robots/ball.kinbody.xml'
+
+#
+DEG_LIMIT1 = 0.0
+DEG_LIMIT2 = 0.0
+
+# default of robot spherical raidus
+RADIUS = 30.0
+TRANS_ERR = RADIUS/10000
+
+#
+LOG_ON = True

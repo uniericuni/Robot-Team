@@ -30,12 +30,16 @@ if __name__ == "__main__":
     robot = env.GetRobots()[0]
 
     Tz = matrixFromAxisAngle([0,0,numpy.pi/6])
-
     robots = HomogeneousRobotTeam(  env,
                                     INSTANCE_ROBOT, 4,
                                     TEMPORARY_LOCK_ROBOT, 
                                     'chain')
     robots.lock( LOCK_ROBOT_TEMPLATE, [])
+    '''
+    robot = env.ReadRobotURI(TEMPORARY_LOCK_ROBOT)
+    env.AddRobot(robot)
+    robots = env.GetRobots()[0]
+    '''
 
     raw_input("Press enter to exit...")
 
