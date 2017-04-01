@@ -43,7 +43,7 @@ class HomogeneousRobotTeam:
 
         # xml element tree initialization
         # tree = ET.parse(LOCK_ROBOT_TEMPLATE)
-        tree = ET.parse(self.instance_xml)
+        tree = ET.parse(xml_template)
         root = tree.getroot()
         base = ET.Element('Kinbody', {'name': 'robot0'})
         prev_node = base
@@ -86,9 +86,7 @@ class HomogeneousRobotTeam:
         # TODO: deinfe manipulator
      
         # return lockded system
-        print self.lock_xml
-        lock_robot = self.env.ReadRobotURI(TEMPORARY_LOCK_ROBOT)
-        
+        lock_robot = self.env.ReadRobotURI(self.lock_xml)
         self.env.AddRobot(lock_robot)
         self.lock_robot = self.env.GetRobots()[0]
      
