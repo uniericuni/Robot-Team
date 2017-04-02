@@ -13,7 +13,8 @@ class HomogeneousRobotTeam:
                        instance_xml,            # file path to the model of homogeneous robot
                        instance_number,         # number of robot to initaite
                        lock_xml,                # file path to store temporary robot team model
-                       joint_type ):            # joint type: chain, central distributed, network <--- should change a name, lol
+                       joint_type,              # joint type: chain, central distributed, network <--- should change a name, lol
+                       configs=None):           # assigned initial configuration for each bot 
 
         # system parameters
         self.env = env
@@ -29,26 +30,22 @@ class HomogeneousRobotTeam:
         for i in range(instance_number):
             robot_instance = self.env.ReadRobotURI(instance_xml)
             robot_instance.SetName('robot%d'%i)
-            robot_instance.SetTransform( [[ 1,0,0,i],[0,1,0,0],[0,0,1,0]] ) # TODO: randomo init configuration
-            self.robots.append(robot_instance)
+            if configs:
+                tf = configs[i]
+                robot_instance.SetTransform(tf) # TODO: randomo init configuration
             # TODO: lock(), eliminate original robot
-            #self.env.AddRobot(robot_instance)
-        # self.robots = self.env.GetRobots()
+            self.env.AddRobot(robot_instance)
+        self.robots = self.env.GetRobots()
 
     # lock robot team into a single .xml and bind by joints
     def lock(self, xml_template,                # file path to robot team model template 
                    base_config,                 # virtual root node configuration for team model 
-                   configs=None,                # assigned initila configuration for each bot 
                    enforced=True,               # enforce to align according to joint_type
                    print_out=False):            # print out generated xml tree
 
         # enforce robots to certain team configuration
         if enforced:
             self.enforce()
-
-        # set the configuration of each robot
-        if configs:
-            pass
 
         # xml element tree initialization
         tree = ET.parse(xml_template)
