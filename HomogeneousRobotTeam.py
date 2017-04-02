@@ -13,33 +13,36 @@ class HomogeneousRobotTeam:
                        instance_xml,            # file path to the model of homogeneous robot
                        instance_number,         # number of robot to initaite
                        lock_xml,                # file path to store temporary robot team model
-                       joint_type,              # joint type: chain, central distributed, network <--- should change a name, lol
+                       active_joint_dofs,       # set active dofs by joints
+                       active_affine_dofs,      # set active dofs by affine
+                       joint_type='chain',      # joint type: chain, central distributed, network <--- should change a name, lol
                        configs=None):           # assigned initial configuration for each bot 
 
-        # system parameters
+        # define system parameters
         self.env = env
         self.instance_xml = instance_xml
         self.instance_number = instance_number
         self.lock_xml = lock_xml
         self.joint_type = joint_type
-        self.status = 'unlock'
-        self.log = Log.Log(LOG_ON)
+        self.status = UNLOCK
+        self.log = Log.Log(ISDISPLAY)
+        self.planner = None
+        self.query = None
 
-        # instantiation
+        # instantialize homogeneous robots
         self.robots = []
         for i in range(instance_number):
             robot_instance = self.env.ReadRobotURI(instance_xml)
             robot_instance.SetName('robot%d'%i)
             if configs:
                 tf = configs[i]
-                robot_instance.SetTransform(tf) # TODO: randomo init configuration
-            # TODO: lock(), eliminate original robot
+                robot_instance.SetTransform(tf)
+            robot_instance.SetActiveDOFs(active_joint_dofs, active_affine_dofs)
             self.env.AddRobot(robot_instance)
         self.robots = self.env.GetRobots()
 
     # lock robot team into a single .xml and bind by joints
     def lock(self, xml_template,                # file path to robot team model template 
-                   base_config,                 # virtual root node configuration for team model 
                    enforced=True,               # enforce to align according to joint_type
                    print_out=False):            # print out generated xml tree
 
@@ -86,7 +89,7 @@ class HomogeneousRobotTeam:
             joint.append(limit)
             wrapper_kinbody.append(joint)
 
-            # define manipulator for chain
+        # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
         base = ET.Element('base'); base.text = '0_Base';
         eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
@@ -104,10 +107,15 @@ class HomogeneousRobotTeam:
         # return lockded system
         lock_robot = self.env.ReadRobotURI(self.lock_xml)
         self.env.AddRobot(lock_robot)
-        self.lock_robot = self.env.GetRobots()[0]
+        self.lock_robot = self.env.GetRobots()[self.instance_number]
+
+        # set all joint dofs active
+        self.lock_robot.SetActiveDOFs( [i for i in range(len(self.lock_robot.GetJoints()))] )
 
         # system log
         self.log.msg('Sys', 'robot team modeled')
+        self.status = LOCK
+        return self.lock_robot
      
     # TODO: unlock robot team and destroy temporary .xml
     def unLockRobots(self):
@@ -144,3 +152,32 @@ class HomogeneousRobotTeam:
 
         # system log
         self.log.msg('Sys', 'robot assemblied')
+
+    # setup planner
+    # TODO: implement hiearchical planning + series of query binding with lock/unlock status
+    def setPlanner(self, planner, query):
+        self.query = query
+        self.planner = planner
+        self.log.msg('Sys', 'planner setup')
+
+    # planning
+    def planning(self):
+
+        # raised error when planner hasn't bee setup
+        if not self.planner or not self.query:
+            self.log.msg('Error', 'please call setPlanner() first to setup planner')
+            return 
+
+        # plan for locked robot
+        if self.status==LOCK:
+            try:
+                self.planner(query, env, self.lock_robot)
+            except:
+                self.log.msg('Error', 'planner function and arguments not match')
+
+        # plan for unlocked robot
+        else:
+            try:
+                self.planner(query, env, self.robots)
+            except:
+                self.log.msg('Error', 'planner function and arguments not match')

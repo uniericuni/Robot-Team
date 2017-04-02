@@ -22,4 +22,11 @@ RADIUS = 30.0
 TRANS_ERR = RADIUS/10000
 
 #
-LOG_ON = True
+ISDISPLAY = True
+
+# system status
+LOCK = True
+UNLOCK = False
+
+# number of homogeneous robots
+INSTANCE_NUM = 3

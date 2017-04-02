@@ -27,12 +27,16 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     with env:
+        init_configs = [ [[ 1,0,0,-2.2],[0,1,0,2*i],[0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
         robots = HomogeneousRobotTeam(  env,
-                                    INSTANCE_ROBOT, 4,
-                                    TEMPORARY_LOCK_ROBOT, 
-                                    'chain',
-                                    [ [[ 1,0,0,-9.0],[0,1,0,2*i],[0,0,1,20.3]] for i in range(4) ])
-        robots.lock( LOCK_ROBOT_TEMPLATE, [])
+                                        INSTANCE_ROBOT,
+                                        INSTANCE_NUM,
+                                        TEMPORARY_LOCK_ROBOT, 
+                                        [],
+                                        (DOFAffine.X|DOFAffine.Y|DOFAffine.Z),
+                                        'chain',
+                                        init_configs )
+        lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
 
     raw_input("Press enter to exit...")
 
