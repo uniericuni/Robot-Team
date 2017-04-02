@@ -26,12 +26,20 @@ if __name__ == "__main__":
     env.Load('data/robotTeamTest.env.xml')
     time.sleep(0.1)
 
-    robots = HomogeneousRobotTeam(  env,
+    with env:
+        robots = HomogeneousRobotTeam(  env,
                                     INSTANCE_ROBOT, 4,
                                     TEMPORARY_LOCK_ROBOT, 
                                     'chain',
                                     [ [[ 1,0,0,-9.0],[0,1,0,2*i],[0,0,1,20.3]] for i in range(4) ])
-    robots.lock( LOCK_ROBOT_TEMPLATE, [])
+        robots.lock( LOCK_ROBOT_TEMPLATE, [])
+    '''
+    robot = env.ReadRobotURI(TEMPORARY_LOCK_ROBOT)
+    print robot.GetDOF()
+    print '-'*30
+    env.AddRobot(robot)
+    '''
+    
 
     raw_input("Press enter to exit...")
 

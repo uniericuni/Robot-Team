@@ -53,6 +53,9 @@ class HomogeneousRobotTeam:
 
         # lock robots
         # TODO: joint type
+        wrapper_joint = ET.Element('Robot')
+        wrapper_kinbody = ET.Element('Kinbody')
+        joint_list = []
         for i,robot in enumerate(self.robots):
      
             # create robot node
@@ -60,10 +63,8 @@ class HomogeneousRobotTeam:
             kinbody = ET.Element('Robot', { 'prefix': '%d_'%(i),
                                             'file': self.instance_xml})
             transform = robot.GetTransform()
-            translation = ET.Element('translation')
-            translation.text = ' '.join( str(x[3]) for x in transform[0:3] )
-            rotationmat = ET.Element('rotationmat')
-            rotationmat.text = ' '.join( str(x) for x in np.ravel(transform[0:3,0:3]) )
+            translation = ET.Element('translation'); translation.text = ' '.join( str(x[3]) for x in transform[0:3] );
+            rotationmat = ET.Element('rotationmat'); rotationmat.text = ' '.join( str(x) for x in np.ravel(transform[0:3,0:3]) );
             wrapper.append(kinbody) 
             wrapper.append(translation)
             wrapper.append(rotationmat)
@@ -73,29 +74,32 @@ class HomogeneousRobotTeam:
             if i==0: continue
             
             # create joints
-            wrapper_joint = ET.Element('Robot')
-            kinbody = ET.Element('Kinbody')
-            joint = ET.Element('Joint',  {'enable': 'false',
+            joint = ET.Element('Joint',  {'enable': 'true',
                                           'type': 'hinge',
                                           'name': '%d-to-%d'%(i-1,i)} )
-            body1 = ET.Element('Body')
-            body1.text = '%d_base'%(i-1)
-            body2 = ET.Element('Body')
-            body2.text = '%d_base'%(i)
-            limit = ET.Element('limitdegs')
-            limit.text = '%f %f'%(DEG_LIMIT1, DEG_LIMIT2)
+            joint_list.append('%d-to-%d'%(i-1,i))
+            body1 = ET.Element('Body'); body1.text = '%d_Base'%(i-1);
+            body2 = ET.Element('Body'); body2.text = '%d_Base'%(i);
+            limit = ET.Element('limitdegs'); limit.text = '%f %f'%(DEG_LIMIT1, DEG_LIMIT2);
             joint.append(body1)
             joint.append(body2)
             joint.append(limit)
-            kinbody.append(joint)
-            wrapper_joint.append(kinbody)
-            root.append(wrapper_joint)
+            wrapper_kinbody.append(joint)
 
+            # define manipulator for chain
+        manipulator = ET.Element('Manipulator', {'name': 'chain'})
+        base = ET.Element('base'); base.text = '0_Base';
+        eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
+        manipulator.append(eff)
+        manipulator.append(base)
+        wrapper_joint.append(wrapper_kinbody)
+        wrapper_joint.append(manipulator)
+        root.append(wrapper_joint)
+        
+        # write the model to xml
         tree.write(self.lock_xml)
         if print_out:
             ET.dump(root)
-     
-        # TODO: deinfe manipulator
      
         # return lockded system
         lock_robot = self.env.ReadRobotURI(self.lock_xml)
