@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import time
 import openravepy
+import planner
 
 from HomogeneousRobotTeam import *
 from config import *
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # generate robot team
+    query = np.array([-2.2, 0])
     with env:
         init_configs = [ [[ 1,0,0,-2.2],[0,1,0,2*i],[0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
         robots = HomogeneousRobotTeam(  env,
@@ -39,23 +41,7 @@ if __name__ == "__main__":
                                         'chain',
                                         init_configs )
         lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
-        lock_robot.SetActiveManipulator(0)
-
-    # generate the ik solver
-    iktype = IkParameterization.Type.Translation3D
-    ikmodel = databases.inversekinematics.InverseKinematicsModel( lock_robot,
-                                                                  iktype=iktype )
-    if not ikmodel.load():
-        ikmodel.autogenerate()
-    
-    # generate ik solution solution
-    fix_target = np.array([2.2, 5.2, 20.3])
-    with env:
-        while True:
-            target = fix_target + (np.random.rand(3)-2)*0.1
-            ikparam = IkParameterization(target, iktype)
-            solutions = ikmodel.manip.FindIKSolutions( ikparam, IkFilterOptions.CheckEnvCollisions )
-            if solutions is not None and len(solutions)>0: break
-            print "[sys] solver not found for: " + str(target.tolist)
+        robots.setPlanner(planner.plannarPlanner, query)
+        robots.planning()
                                     
     raw_input("Press enter to exit...")

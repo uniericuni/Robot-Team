@@ -14,8 +14,8 @@ TEMPORARY_LOCK_ROBOT = '/media/sf_Share/Final/tempLockRobot.robot.xml'
 INSTANCE_ROBOT = MODELS + 'robots/ball.kinbody.xml'
 
 #
-DEG_LIMIT1 = 0.0
-DEG_LIMIT2 = 0.0
+# DEG_LIMIT1 = -180.0
+# DEG_LIMIT2 = 180.0
 
 # default of robot spherical raidus
 RADIUS = 30.0
@@ -29,4 +29,4 @@ LOCK = True
 UNLOCK = False
 
 # number of homogeneous robots
-INSTANCE_NUM = 12
+INSTANCE_NUM = 4

@@ -77,22 +77,31 @@ class HomogeneousRobotTeam:
             if i==0: continue
             
             # create joints
+            # TODO: redefine the joint DOF so to achiev 3DOF in whole
+            diff = np.array(self.robots[i-1].GetTransform()) - np.array(self.robots[i].GetTransform())
+            anchor_unit_vec = (diff/np.linalg.norm(diff)).tolist()
             joint = ET.Element('Joint',  {'enable': 'true',
+                                          'circular': 'true',
                                           'type': 'hinge',
                                           'name': '%d-to-%d'%(i-1,i)} )
             joint_list.append('%d-to-%d'%(i-1,i))
             body1 = ET.Element('Body'); body1.text = '%d_Base'%(i-1);
             body2 = ET.Element('Body'); body2.text = '%d_Base'%(i);
-            limit = ET.Element('limitdegs'); limit.text = '%f %f'%(DEG_LIMIT1, DEG_LIMIT2);
+            offset = ET.Element('offsetfrom'); offset.text = '%d_Base'%(i-1);
+            axis = ET.Element('axis'); axis.text = '0 0 1'
+            #anchor = ET.Element('Anchor'); anchor.text = ' '.join([str(v) for v in anchor_unit_vec])
+            #anchor = ET.Element('Anchor'); anchor.text = ' '.join([str(v) for v in anchor_unit_vec])
             joint.append(body1)
             joint.append(body2)
-            joint.append(limit)
+            joint.append(offset)
+            joint.append(axis)
+            #joint.append(anchor)
             wrapper_kinbody.append(joint)
 
         # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
-        base = ET.Element('base'); base.text = '0_Base';
-        eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
+        base = ET.Element('base'); base.text = '%d_Base'%(self.instance_number-1)
+        eff = ET.Element('effector'); eff.text = '0_Base'
         manipulator.append(eff)
         manipulator.append(base)
         wrapper_joint.append(wrapper_kinbody)
@@ -109,8 +118,9 @@ class HomogeneousRobotTeam:
         self.env.AddRobot(lock_robot)
         self.lock_robot = self.env.GetRobots()[self.instance_number]
 
-        # set all joint dofs active
+        # set manipulator
         self.lock_robot.SetActiveDOFs( [i for i in range(len(self.lock_robot.GetJoints()))] )
+        self.lock_robot.SetActiveManipulator('chain')
 
         # system log
         self.log.msg('Sys', 'robot team modeled')
@@ -154,7 +164,7 @@ class HomogeneousRobotTeam:
         self.log.msg('Sys', 'robot assemblied')
 
     # setup planner
-    # TODO: implement hiearchical planning + series of query binding with lock/unlock status
+    # TODO: modify implementation as instantiate a planner object
     def setPlanner(self, planner, query):
         self.query = query
         self.planner = planner
@@ -164,20 +174,21 @@ class HomogeneousRobotTeam:
     def planning(self):
 
         # raised error when planner hasn't bee setup
-        if not self.planner or not self.query:
+        if self.planner is None or self.query is None:
             self.log.msg('Error', 'please call setPlanner() first to setup planner')
             return 
 
         # plan for locked robot
         if self.status==LOCK:
             try:
-                self.planner(query, env, self.lock_robot)
+                solutions = self.planner(self.query, self.env, self.lock_robot)
+                self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
             except:
                 self.log.msg('Error', 'planner function and arguments not match')
 
         # plan for unlocked robot
         else:
             try:
-                self.planner(query, env, self.robots)
+                self.planner(self.query, self.env, self.robots)
             except:
                 self.log.msg('Error', 'planner function and arguments not match')
