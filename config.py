@@ -29,4 +29,4 @@ LOCK = True
 UNLOCK = False
 
 # number of homogeneous robots
-INSTANCE_NUM = 3
+INSTANCE_NUM = 12
