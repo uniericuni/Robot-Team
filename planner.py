@@ -50,7 +50,7 @@ def multiModalPlanner(query, env, robot, modal_samplers, trans_samplers):
         # sample transition
         for sampler in trans_samplers:
             mode0,mode1 = sampler.getTransPair()
-            samples = sampler.makeSampe()
+            samples = sampler.makeSample()
             node0 = Node(samples[0])
             node1 = Node(samples[1])
             node0.extendNeighbors(node1)
