@@ -30,3 +30,6 @@ UNLOCK = False
 
 # number of homogeneous robots
 INSTANCE_NUM = 4
+
+# maximum multimodal sampling iteration
+MM_MAX_ITER
