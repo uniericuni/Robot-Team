@@ -26,14 +26,20 @@ class Graph:
 
     def __init__(self):
         self.V = []
-        self.k = 10
+
+    def __init__(self, query_nodes):
+        self.V = query_nodes
+        self.init_node = query_nodes[0]
+        self.goal_node = query_nodes[1]
 
     # add node into graph and connect with KNN
-    def addNode(self, node, neighbors='k'):
+    def addNode(self, node, neighbors='ball'):
 
-        # TODO: KNN
-        # TODO: rejection connection
-        pass
+        # extend all neighbors nodes within a boundary ball
+        if neighbors == 'ball':
+            for v in self.V:
+                if np.linalg.norm(v.val-node.val) < BOUNDARY:
+                    node.extendNeighbors(v)
 
         # add all nodes as neighbors
         if neighbors == 'all':
@@ -43,11 +49,18 @@ class Graph:
         # append node to graph
         self.V.append(node)
 
-def isConnect(query, maps, modes_map, rtn):
+    # TODO: return transition nodes, should do exhausted search?
+    def isConnect(visited={}, node=self.goal_node):
 
-    # hash visited nodes
-    visited = {}
+        # goal test
+        if node==self.init_node:
+            return True
 
-    # DFS tests connectivity
-    pass
-
+        # expand neighbors 
+        visited[node] = True
+        rtn = False
+        for neighbor  in node.neighbors:
+            if neighbor in visited:
+                continue
+            rtn = rtn | self.isConnect(visited=visited, node=neighbor)
+        return rtn
