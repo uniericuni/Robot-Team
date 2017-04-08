@@ -2,10 +2,10 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import time
 import openravepy
-import Planner
 
 from HomogeneousRobotTeam import *
 from config import *
+from Planner import *
 
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -41,7 +41,8 @@ if __name__ == "__main__":
                                         'chain',
                                         init_configs )
         lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
-        robots.setPlanner(planner.plannarPlanner, query)
+        robots.setPlanner(plannarPlanner, query)
         robots.planning()
+        print lock_robot.GetActiveDOFValues()
                                     
     raw_input("Press enter to exit...")

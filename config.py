@@ -32,4 +32,13 @@ UNLOCK = False
 INSTANCE_NUM = 4
 
 # maximum multimodal sampling iteration
-MM_MAX_ITER
+MM_MAX_ITER = 10000
+
+# experiment one field constraint
+X_MIN1 = -10
+X_MAX1 = -2.2
+X_MIN2 = 10
+X_MAX2 = 2.2
+Y_MAX = 10
+Y_MIN = -10
+Z = 20.3

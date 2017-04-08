@@ -164,7 +164,6 @@ class HomogeneousRobotTeam:
         self.log.msg('Sys', 'robot assemblied')
 
     # setup planner
-    # TODO: modify implementation as instantiate a planner object
     def setPlanner(self, planner, query):
         self.query = query
         self.planner = planner

@@ -1,7 +1,6 @@
 import numpy as np
 import openravepy
 
-from sklearn.neighbors import KDTree
 from HomogeneousRobotTeam import *
 from config import *
 
@@ -37,7 +36,7 @@ class Graph:
         pass
 
         # add all nodes as neighbors
-        if neighbors = 'all':
+        if neighbors == 'all':
             for v in self.V:
                 node.extendNeighbors(v)
 
