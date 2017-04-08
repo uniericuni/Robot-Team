@@ -30,39 +30,55 @@ def plannarPlanner(query, env, robot):
     return solutions
 
 # multi-modal planner
-def multiModalPlanner(query, env, robot, modal_samplers, trans_samplers):
+def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
 
     # initiate adjacent matrix to store connections and list of graph to store connection in one mode
-    # TODO: graph object, sampler object
     num_of_modes = len(modal_samplers)
-    modes_map = [[0]*num_of_modes for _ in range(num_of_modes)]
-    maps = [Graph()]*num_of_modes    
+    transition_map = [[{}]*num_of_modes for _ in range(num_of_modes)]
+    maps = [Graph(query)] + [Graph]*(num_of_modes-1)
 
     # connecting modes
-    for _ in range(MM_MAX_ITER):
+    rtn = False
+    for i in range(MM_MAX_ITER):                            # test M times
+        for j in range(MAX_SAMPLING_TIME):                  # sampling N times
+            
+            # sample each mode
+            for k,sampler in enumerate(modal_samplers):
 
-        # sample each mode
-        for i,sampler in enumerate(modal_samplers):
-            sample = sampler.makeSample()
-            node = Node(sample)
-            maps[i].addNode(node)
+                # sample joint configs for UNLCOK
+                if sampler.mode==0:
+                    sample = np.array([sampler.makeSample()]*robot_team.instance_number)
+                    shape = np.shape(sample)
+                    sample = np.reshpae( sample, (shape[0]*shape[1],1) )
+                    maps[k].addConfig(sample)
+                
+                # sample base configs for LOCK_Base0, LOCK_BaseN
+                else:
+                    sample = sampler.makeSample()
+                    maps[k].addConfig(sample)
+ 
+            # sample transition
+            for sampler in trans_samplers:
+                
+                # add transitions samples to map
+                mode0,mode1 = sampler.getTransPair()        # make potentially connectable transition sample pairs
+                sample_pair = sampler.makeSample()
+                node0 = Node(sample_pair[0])                # instantiate node pair
+                node1 = Node(sample_pair[1]) 
+                node0.extendNeighbors(node1)                # connect node pair
+                node1.extendNeighbors(node0) 
+                maps[mode0].addNode(node0)                  # add node pair to map
+                maps[mode1].addNode(node1) 
 
-        # sample transition
-        for sampler in trans_samplers:
-            mode0,mode1 = sampler.getTransPair()
-            samples = sampler.makeSample()
-            node0 = Node(samples[0])
-            node1 = Node(samples[1])
-            node0.extendNeighbors(node1)
-            node1.extendNeighbors(node0)
-            maps[mode0].addNode(node0, 'all')
-            maps[mode1].addNode(node1, 'all')
-            modes_map[mode0][mode1].extend([node0,node1])
-            modes_map[mode1][mode0].extend([node1,node0])
+                # add transitions sample to dictionary 
+                transition_map[mode0][mode1][node0] = [node0,node1]
+                transition_map[mode1][mode0][node1] = [node1,node0]
 
         # connection test, return transition points if connected
         rtn = []
-        if isConnect(query, maps, modes_map, rtn):
-            return rtn
+        init_node = Node(query[0])
+        goal_node = Node(query[1])
+        if isConnect(init_node, goal_node):
+            rtn = True
 
-    return False
+    return rtn

@@ -1,30 +1,30 @@
 import numpy as np
-import openravepy
+import time
+#import openravepy
 
-from HomogeneousRobotTeam import *
-from Graph import *
+#from HomogeneousRobotTeam import *
 from config import *
+from Log import *
 
-if not __openravepy_build_doc__:
-    from openravepy import *
-    from numpy import *
-
-# step size
-STEP = TRNAS_ERR
+#if not __openravepy_build_doc__:
+#    from openravepy import *
+#    from numpy import *
 
 # samplers
-class sampler:
+class Sampler:
 
     # define sampler type
-     def __init__(self, mode,               # 0:LOCK | 1:UNLCOK,0_base | 2:UNLOCK,N_base
+    def __init__(self,  mode,               # 0:LOCK | 1:UNLCOK,0_base | 2:UNLOCK,N_base
                         is_trans=False,     # transition sampler or not
-                        pair=None):
+                        pair=None,          # transition pair
+                        pair_range=None):   # transition constraint
 
         # initiate random seed
-        self.random.seed(int(time.time()))
+        np.random.seed(int(time.time()))
         self.mode = mode
         self.is_trans = is_trans
         self.log = Log(display=True)
+        self.pair_range = pair_range
 
         # initialize transition pair for transition sampling 
         if self.is_trans:
@@ -32,10 +32,9 @@ class sampler:
                 self.log.msg('Error', 'transition pair not assigned')
                 return
             else:
-                self.pair==pair
+                self.pair = pair
     
     # make sample
-    # TODO
     def makeSample(self):
 
         # sample configuration within a mode
@@ -46,9 +45,9 @@ class sampler:
             if self.mode==0:
                 return self.easySample()
             elif self.mode==1:
-                pass
+                return self.easySample()
             elif self.mode==2:
-                pass
+                return self.easySample()
             else:
                 self.log.msg('Error', 'no specified mode')
                 return 
@@ -57,15 +56,15 @@ class sampler:
         else:
         
             # transition from LOCK to UNLOCK
-            if self.pair[0]==0 or self.pari[1]==0:
+            if self.pair[0]==0 or self.pair[1]==0:
                 return [self.easySample()]*2
             
             # transition between base0 and baseN, i.e. within a bounding circle
-            # TODO: even 2 within a circle, it is not gauranteed that it can be solve by ik solver, such as self collision, kinematic constraints, etc
             # TODO: IKSolver Test
+            # note: even 2 within a circle, it is not gauranteed that it can be solve by ik solver, such as self collision, kinematic constraints, etc
             else:
                 rtn_pair = [self.easySample(), self.easySample()]
-                while np.linalg.norm(rtn_pair[0]-rtn_pair[1]) < RANGE:
+                while np.linalg.norm(rtn_pair[0]-rtn_pair[1]) < self.pair_range :
                     rtn_pair = [self.easySample(), self.easySample()]
                 return rtn_pair
 
@@ -77,7 +76,7 @@ class sampler:
             rtn = [ (X_MAX2-X_MIN2)*np.random.rand()+X_MIN2 ]
         rtn.append( (Y_MAX-Y_MIN)*np.random.rand()+Y_MIN )
         rtn.append( Z )
-        return rtn
+        return np.array(rtn)
         
     # return transition pair
     def getTransPair(self):

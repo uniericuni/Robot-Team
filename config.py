@@ -1,6 +1,9 @@
 # pi
 PI = 3.14159265
 
+# single robot dof
+DOF = 2
+
 # model directory
 MODELS = '/usr/local/share/openrave-0.9/'
 
@@ -32,7 +35,8 @@ UNLOCK = False
 INSTANCE_NUM = 4
 
 # maximum multimodal sampling iteration
-MM_MAX_ITER = 10000
+MM_MAX_ITER = 30
+MAX_SAMPLING_TIME = 10000
 
 # experiment one field constraint
 X_MIN1 = -10
@@ -42,3 +46,6 @@ X_MAX2 = 2.2
 Y_MAX = 10
 Y_MIN = -10
 Z = 20.3
+
+# cliff length
+CLIFF = 4

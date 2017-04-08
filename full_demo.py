@@ -6,6 +6,7 @@ import openravepy
 from HomogeneousRobotTeam import *
 from config import *
 from Planner import *
+from Sampler import *
 
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -43,6 +44,21 @@ if __name__ == "__main__":
         lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
         robots.setPlanner(plannarPlanner, query)
         robots.planning()
-        print lock_robot.GetActiveDOFValues()
+        
+        # instantitate single mode sampler
+        # TODO: make mode binary so analytic
+        sampler0 =  Sampler(mode=0)
+        sampler1 =  Sampler(mode=1)
+        sampler2 =  Sampler(mode=2)
+        modal_samplers = [sampler0, sampler1, sampler2]
+
+        # instantitate multi-modal sampler
+        sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=RADIUS*lock_robot*(instance_number-1)/10)
+        sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=RADIUS*lock_robot*(instance_number-1)/10)
+        sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=RADIUS*lock_robot*(instance_number-1)/10)
+        trans_samplers = [sampler01, sampler02, sampler12]
+
+        # multiModalPlanning
+        isConnective = multiModalPlanner(query, lock_robot, modal_samplers, trans_samplers)
                                     
     raw_input("Press enter to exit...")

@@ -5,6 +5,7 @@ import os
 import Log
 
 from config import *
+from Sampler import *
 
 class HomogeneousRobotTeam:
 
