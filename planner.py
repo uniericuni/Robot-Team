@@ -1,5 +1,6 @@
 import numpy as np
 import openravepy
+import sys
 
 from HomogeneousRobotTeam import *
 from Graph import *
@@ -35,28 +36,35 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
     # initiate adjacent matrix to store connections and list of graph to store connection in one mode
     num_of_modes = len(modal_samplers)
     transition_map = [[{}]*num_of_modes for _ in range(num_of_modes)]
-    maps = [Graph(query)] + [Graph]*(num_of_modes-1)
+    maps = [Graph(query)] + [Graph(query)]*(num_of_modes-1)
 
     # connecting modes
     rtn = False
     for i in range(MM_MAX_ITER):                            # test M times
         for j in range(MAX_SAMPLING_TIME):                  # sampling N times
-            
+
+            # progress report
+            '''
+            base = float(MAX_SAMPLING_TIME)/100
+            if j%base==0: 
+                line = "Sampling Progress: " + "|"*(j/base) + " %d"%(float(j)/base) + "\r"
+                print line
+            '''
             # sample each mode
             for k,sampler in enumerate(modal_samplers):
 
-                # sample joint configs for UNLCOK
+                # sample single configs for the BASE for UNLCOK
                 if sampler.mode==0:
-                    sample = np.array([sampler.makeSample()]*robot_team.instance_number)
-                    shape = np.shape(sample)
-                    sample = np.reshpae( sample, (shape[0]*shape[1],1) )
+                    sample = sampler.makeSample()
                     maps[k].addConfig(sample)
                 
                 # sample base configs for LOCK_Base0, LOCK_BaseN
                 else:
                     sample = sampler.makeSample()
                     maps[k].addConfig(sample)
- 
+
+                sys.stdout.flush()
+
             # sample transition
             for sampler in trans_samplers:
                 
@@ -75,10 +83,7 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
                 transition_map[mode1][mode0][node1] = [node1,node0]
 
         # connection test, return transition points if connected
-        rtn = []
-        init_node = Node(query[0])
-        goal_node = Node(query[1])
-        if isConnect(init_node, goal_node):
+        if isConnect(maps[0].init_node, maps[0].goal_node):
             rtn = True
 
     return rtn

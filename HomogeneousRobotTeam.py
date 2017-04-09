@@ -2,10 +2,10 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import openravepy
 import os
-import Log
 
 from config import *
 from Sampler import *
+from Log import * 
 
 class HomogeneousRobotTeam:
 
@@ -26,7 +26,7 @@ class HomogeneousRobotTeam:
         self.lock_xml = lock_xml
         self.joint_type = joint_type
         self.status = UNLOCK
-        self.log = Log.Log(ISDISPLAY)
+        self.log = Log(ISDISPLAY)
         self.planner = None
         self.query = None
 

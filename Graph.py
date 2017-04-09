@@ -48,7 +48,7 @@ class Graph:
         # note: the boundary is set to l2-norm while the real case is l1-norm in supsapce
         if neighbors == 'ball':
             for v in self.nodes:
-                if np.linalg.norm(v.val-node.val) < BOUNDARY:
+                if np.linalg.norm(v.getVal()-node.getVal()) < BOUNDARY:
                     node.extendNeighbors(v)
                     v.extendNeighbors(node)
 
@@ -77,4 +77,5 @@ def isConnect(node, goal_node, visited={}):
         if neighbor in visited:
             continue
         rtn = rtn | isConnect(neighbor, goal_node, visited=visited)
+
     return rtn

@@ -32,11 +32,11 @@ LOCK = True
 UNLOCK = False
 
 # number of homogeneous robots
-INSTANCE_NUM = 4
+INSTANCE_NUM = 10
 
 # maximum multimodal sampling iteration
-MM_MAX_ITER = 30
-MAX_SAMPLING_TIME = 10000
+MM_MAX_ITER = 50
+MAX_SAMPLING_TIME = 10
 
 # experiment one field constraint
 X_MIN1 = -10

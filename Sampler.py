@@ -1,14 +1,14 @@
 import numpy as np
 import time
-#import openravepy
+import openravepy
 
-#from HomogeneousRobotTeam import *
+from HomogeneousRobotTeam import *
 from config import *
 from Log import *
 
-#if not __openravepy_build_doc__:
-#    from openravepy import *
-#    from numpy import *
+if not __openravepy_build_doc__:
+    from openravepy import *
+    from numpy import *
 
 # samplers
 class Sampler:
@@ -64,8 +64,9 @@ class Sampler:
             # note: even 2 within a circle, it is not gauranteed that it can be solve by ik solver, such as self collision, kinematic constraints, etc
             else:
                 rtn_pair = [self.easySample(), self.easySample()]
-                while np.linalg.norm(rtn_pair[0]-rtn_pair[1]) < self.pair_range :
+                while np.linalg.norm(rtn_pair[0]-rtn_pair[1]) > self.pair_range :
                     rtn_pair = [self.easySample(), self.easySample()]
+                    # print rtn_pair, np.linalg.norm(rtn_pair[0]-rtn_pair[1]), self.pair_range
                 return rtn_pair
 
     # single sample within work space:

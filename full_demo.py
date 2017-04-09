@@ -41,24 +41,27 @@ if __name__ == "__main__":
                                         (DOFAffine.X|DOFAffine.Y|DOFAffine.Z),
                                         'chain',
                                         init_configs )
-        lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
-        robots.setPlanner(plannarPlanner, query)
-        robots.planning()
+        #lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
+        #robots.setPlanner(plannarPlanner, query)
+        #robots.planning()
         
         # instantitate single mode sampler
         # TODO: make mode binary so analytic
+        query = [np.array([-5, 0, 20.3]), np.array([5, 0, 20.3])]
         sampler0 =  Sampler(mode=0)
         sampler1 =  Sampler(mode=1)
         sampler2 =  Sampler(mode=2)
         modal_samplers = [sampler0, sampler1, sampler2]
 
         # instantitate multi-modal sampler
-        sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=RADIUS*lock_robot*(instance_number-1)/10)
-        sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=RADIUS*lock_robot*(instance_number-1)/10)
-        sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=RADIUS*lock_robot*(instance_number-1)/10)
+        n = float(robots.instance_number-1)
+        pr = float(RADIUS)*n/10
+        sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=pr)
+        sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=pr)
+        sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=pr)
         trans_samplers = [sampler01, sampler02, sampler12]
 
         # multiModalPlanning
-        isConnective = multiModalPlanner(query, lock_robot, modal_samplers, trans_samplers)
+        isConnective = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
                                     
     raw_input("Press enter to exit...")
