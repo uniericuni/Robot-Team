@@ -64,7 +64,7 @@ if __name__ == "__main__":
         trans_samplers = [sampler01, sampler02, sampler12]
 
         # multiModalPlanning
-        rtn_tbl = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
+        rtn_tbl, init_node, goal_node = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
 
         # =================================================
         # PHASE II: cost evaluation

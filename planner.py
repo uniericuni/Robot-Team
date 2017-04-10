@@ -88,4 +88,4 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
         if isConnect(maps[0].init_node, maps[0].goal_node, rtn_tbl):
             break
 
-    return rtn_tbl
+    return rtn_tbl,maps[0].init_node,maps[0].goal_node
