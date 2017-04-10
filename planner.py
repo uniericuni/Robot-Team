@@ -45,13 +45,6 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
     for i in range(MM_MAX_ITER):                            # test M times
         for j in range(MAX_SAMPLING_TIME):                  # sampling N times
 
-            # progress report
-            '''
-            base = float(MAX_SAMPLING_TIME)/100
-            if j%base==0: 
-                line = "Sampling Progress: " + "|"*(j/base) + " %d"%(float(j)/base) + "\r"
-                print line
-            '''
             # sample each mode
             for k,sampler in enumerate(modal_samplers):
 
@@ -84,8 +77,7 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
                 transition_map[mode1][mode0][node1] = [node1,node0]
 
         # connection test, return transition points if connected
-        rtn_tbl = {}
-        if isConnect(maps[0].init_node, maps[0].goal_node, rtn_tbl):
-            break
+        rtn_tbl = {maps[0].init_node:None}
+        if isConnect(maps[0].init_node, maps[0].goal_node, rtn_tbl): break
 
     return rtn_tbl,maps[0].init_node,maps[0].goal_node

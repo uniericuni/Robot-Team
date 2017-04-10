@@ -32,7 +32,9 @@ if __name__ == "__main__":
     # generate robot team
     query = np.array([-2.2, 0])
     with env:
-        init_configs = [ [[ 1,0,0,-2.2],[0,1,0,2*i],[0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
+        init_configs = [   [[ 1,0,0,-2.2-(i%3+1)*2],
+                            [0,1,0,(i%7)*2-5],
+                            [0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
         robots = HomogeneousRobotTeam(  env,
                                         INSTANCE_ROBOT,
                                         INSTANCE_NUM,
@@ -57,7 +59,7 @@ if __name__ == "__main__":
 
         # instantitate multi-modal sampler
         n = float(robots.instance_number-1)
-        pr = float(RADIUS)*n/10
+        pr = float(RADIUS)*n/100
         sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=pr)
         sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=pr)
         sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=pr)
@@ -66,8 +68,42 @@ if __name__ == "__main__":
         # multiModalPlanning
         rtn_tbl, init_node, goal_node = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
 
+        # demo samples
+        print 'samples:'
+        print '-'*20
+        node = goal_node
+        while node!=None:
+            print node.getVal()
+            node = rtn_tbl[node]
+
+        # collect transition pair
+        node = goal_node
+        anchors = [goal_node]
+        while node!=None:
+
+            # append init node
+            if rtn_tbl[node] == None:
+                anchors.append(node)
+            
+            # append anchors with transition configs
+            if node.trans_pair != None:
+                
+                # heuristicly pruning transition to single mode config
+                # TODO: explaining transition pruning
+                if node.trans_pair.getVal()[0]*node.getVal()[0] < 0:
+                    anchors.append(node)
+                    anchors.append(node.trans_pair)
+                    node = node.trans_pair
+            node = rtn_tbl[node]
+
+        # demo anchors
+        print '\nanchors'
+        print '-'*20
+        for v in anchors:
+            print v.getVal().tolist()
+
         # =================================================
-        # PHASE II: cost evaluation
+        # PHASE II: cost evaluation and heuristic planning
         # =================================================
 
         # use LOCK/UNLOCK planner to realize the path

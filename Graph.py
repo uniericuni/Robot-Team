@@ -68,13 +68,14 @@ class Graph:
 def nodePair( config0, config1, mode0, mode1 ):
     node0 = Node(config0, mode0)
     node1 = Node(config1, mode1)
-    node0.trans_pair = node0
-    node1.trans_pair = node1
-    node0.extendNeighbors(node0)
-    node1.extendNeighbors(node1)
+    node0.trans_pair = node1
+    node1.trans_pair = node0
+    node0.extendNeighbors(node1)
+    node1.extendNeighbors(node0)
+    return node0,node1
 
 # Test the connectivity to the goal_node
-def isConnect(node, goal_node, rtn_tbl, visited={node:None}):
+def isConnect(node, goal_node, visited):
 
     # goal test
     if node==goal_node:
@@ -88,8 +89,8 @@ def isConnect(node, goal_node, rtn_tbl, visited={node:None}):
         if neighbor in visited:
             continue
         visited[neighbor] = node
-        rtn = rtn | isConnect(neighbor, goal_node, visited=visited)
-        if rtn: 
-            break
+        rtn = isConnect(neighbor, goal_node, visited=visited)
+        if rtn:
+            break 
 
     return rtn
