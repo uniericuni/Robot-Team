@@ -41,10 +41,12 @@ if __name__ == "__main__":
                                         (DOFAffine.X|DOFAffine.Y|DOFAffine.Z),
                                         'chain',
                                         init_configs )
-        #lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
-        #robots.setPlanner(plannarPlanner, query)
-        #robots.planning()
-        
+       
+
+        # =================================================
+        # PHASE I: scan for transition configurations
+        # =================================================
+
         # instantitate single mode sampler
         # TODO: make mode binary so analytic
         query = [np.array([-5, 0, 20.3]), np.array([5, 0, 20.3])]
@@ -62,6 +64,15 @@ if __name__ == "__main__":
         trans_samplers = [sampler01, sampler02, sampler12]
 
         # multiModalPlanning
-        isConnective = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
+        rtn_tbl = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
+
+        # =================================================
+        # PHASE II: cost evaluation
+        # =================================================
+
+        # use LOCK/UNLOCK planner to realize the path
+        #lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
+        #robots.setPlanner(plannarPlanner, query)
+        #robots.planning()
                                     
     raw_input("Press enter to exit...")

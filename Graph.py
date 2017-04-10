@@ -13,9 +13,11 @@ BOUNDARY = CLIFF
 # node in graph
 class Node:
     
-    def __init__(self, config):
+    def __init__(self, config, mode, transition_pair=None):
         self.val = config
         self.neighbors = []
+        self.trans_pair = transition_pair
+        self.mode = mode
 
     def getVal(self):
         return self.val
@@ -30,16 +32,17 @@ class Graph:
         self.nodes = []
 
     # instantiate init/goal configuration as node an store
-    def __init__(self, query):
-        init_node = Node(query[0])
-        goal_node = Node(query[1])
+    def __init__(self, query, mode):
+        self.mode = mode
+        init_node = Node(query[0], mode)
+        goal_node = Node(query[1], mode)
         self.nodes = [init_node, goal_node]
         self.init_node = init_node
         self.goal_node = goal_node
 
     # add config as node into graph and connect with nodes
     def addConfig(self, config, neighbors='ball'):
-        self.addNode(Node(config), neighbors)
+        self.addNode(Node(config, self.mode), neighbors)
 
     # add node into graph and connect with other nodes
     def addNode(self, node, neighbors='ball'):
@@ -61,21 +64,32 @@ class Graph:
         # append node to graph
         self.nodes.append(node)
 
+# instantiate transition node pair
+def nodePair( config0, config1, mode0, mode1 ):
+    node0 = Node(config0, mode0)
+    node1 = Node(config1, mode1)
+    node0.trans_pair = node0
+    node1.trans_pair = node1
+    node0.extendNeighbors(node0)
+    node1.extendNeighbors(node1)
+
 # Test the connectivity to the goal_node
-def isConnect(node, goal_node, visited={}):
+def isConnect(node, goal_node, rtn_tbl, visited={node:None}):
 
     # goal test
     if node==goal_node:
         return True
 
     # expand neighbors 
-    visited[node] = True
     rtn = False
     func = lambda x:np.linalg.norm(node.getVal()-x.getVal())
     sorted_neighbors = sorted(node.neighbors, key=func)
     for neighbor in sorted_neighbors:
         if neighbor in visited:
             continue
+        visited[neighbor] = node
         rtn = rtn | isConnect(neighbor, goal_node, visited=visited)
+        if rtn: 
+            break
 
     return rtn

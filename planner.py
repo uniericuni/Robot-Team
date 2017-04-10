@@ -36,7 +36,9 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
     # initiate adjacent matrix to store connections and list of graph to store connection in one mode
     num_of_modes = len(modal_samplers)
     transition_map = [[{}]*num_of_modes for _ in range(num_of_modes)]
-    maps = [Graph(query)] + [Graph(query)]*(num_of_modes-1)
+    maps = [Graph(query, 0)]
+    for i in range(1,num_of_modes):
+         maps.append( Graph(query,i) )
 
     # connecting modes
     rtn = False
@@ -71,10 +73,9 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
                 # add transitions samples to map
                 mode0,mode1 = sampler.getTransPair()        # make potentially connectable transition sample pairs
                 sample_pair = sampler.makeSample()
-                node0 = Node(sample_pair[0])                # instantiate node pair
-                node1 = Node(sample_pair[1]) 
-                node0.extendNeighbors(node1)                # connect node pair
-                node1.extendNeighbors(node0) 
+                node0,node1 = nodePair( sample_pair[0],     # instantiate node pair
+                                        sample_pair[1],
+                                        mode0, mode1) 
                 maps[mode0].addNode(node0)                  # add node pair to map
                 maps[mode1].addNode(node1) 
 
@@ -83,7 +84,8 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
                 transition_map[mode1][mode0][node1] = [node1,node0]
 
         # connection test, return transition points if connected
-        if isConnect(maps[0].init_node, maps[0].goal_node):
-            rtn = True
+        rtn_tbl = {}
+        if isConnect(maps[0].init_node, maps[0].goal_node, rtn_tbl):
+            break
 
-    return rtn
+    return rtn_tbl
