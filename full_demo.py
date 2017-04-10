@@ -32,8 +32,8 @@ if __name__ == "__main__":
     # generate robot team
     query = np.array([-2.2, 0])
     with env:
-        init_configs = [   [[ 1,0,0,-2.2-(i%3+1)*2],
-                            [0,1,0,(i%7)*2-5],
+        init_configs = [   [[ 1,0,0,-6.5],
+                            [0,1,0,(i%11)*1.5-5],
                             [0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
         robots = HomogeneousRobotTeam(  env,
                                         INSTANCE_ROBOT,
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
         # instantitate multi-modal sampler
         n = float(robots.instance_number-1)
-        pr = float(RADIUS)*n/100
+        pr = float(RADIUS*2)*(n-1)/100
         sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=pr)
         sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=pr)
         sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=pr)
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         rtn_tbl, init_node, goal_node = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
 
         # demo samples
-        print 'samples:'
+        print 'samples ...'
         print '-'*20
         node = goal_node
         while node!=None:
@@ -89,7 +89,9 @@ if __name__ == "__main__":
             if node.trans_pair != None:
                 
                 # heuristicly pruning transition to single mode config
+                # TODO: use joint state instead of base-represented to prune
                 # TODO: explaining transition pruning
+                # TODO: not pruning mode-0-to-1 or 2
                 if node.trans_pair.getVal()[0]*node.getVal()[0] < 0:
                     anchors.append(node)
                     anchors.append(node.trans_pair)
@@ -97,7 +99,8 @@ if __name__ == "__main__":
             node = rtn_tbl[node]
 
         # demo anchors
-        print '\nanchors'
+        anchors = anchors[::-1]
+        print '\nanchors ...'
         print '-'*20
         for v in anchors:
             print v.getVal().tolist()
@@ -106,9 +109,43 @@ if __name__ == "__main__":
         # PHASE II: cost evaluation and heuristic planning
         # =================================================
 
-        # use LOCK/UNLOCK planner to realize the path
-        #lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
-        #robots.setPlanner(plannarPlanner, query)
-        #robots.planning()
+        # plan for each transition
+        print '\nplanning ...'
+        print '-'*20
+        for i in range(len(anchors)-1):
+            
+            # get anchor pair as init and goal
+            init_anchor,goal_anchor = anchors[i:i+2]
+            query = [init_anchor.getVal(), goal_anchor.getVal()]
+            mode0 = init_anchor.mode
+            mode1 = goal_anchor.mode
+            print 'from mode%d to mode%d'%(mode0,mode1), ' | query: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
+
+            # use UNLOCK planner to realize the path
+            # iteratively move robot to connective position
+            # move the arm to other surface
+            # move the arm to full landed on the surface
+            # dismiss
+
+            query_pair = query
+            query = query[1]
+            if mode0 == 0:
+                robots.unlock()
+                robots.setPlanner(astarPlanner, query)
+                robots.planning()
+
+            '''
+            # use LOCK_BASE0 planner to realize the path
+            elif mode0 == 1:
+                robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
+                robots.setPlanner(plannarPlanner, query)
+                robots.planning()
+
+            # use LOCK_BASEN planner to realize the path
+            elif mode0 == 2:
+                robots.lock( LOCK_ROBOT_TEMPLATE, LOCK1 )
+                robots.setPlanner(plannarPlanner, query)
+                robots.planning()
+            '''
                                     
     raw_input("Press enter to exit...")

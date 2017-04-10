@@ -1,14 +1,45 @@
 import numpy as np
 import openravepy
 import sys
+import utility
 
 from HomogeneousRobotTeam import *
 from Graph import *
 from config import *
+from planning import *
 
 if not __openravepy_build_doc__:
     from openravepy import *
     from numpy import *
+
+# astar for 2D plannar trajectory
+def astarPlanner(query, env, robot):
+    print query
+    start = query[0]
+    goal = query[1]
+    distMethod = utility.eDist
+    expandMethod = utility.eightConnected
+    goalNode, explored, collided = astar(start, goal, distMethod, expandMethod, robot, env)
+    robot.SetActiveDOFValues(goalNode.pos)
+
+    # parse trajectory
+    # Create trajectory
+    '''
+    traj = RaveCreateTrajectory(env, '')
+    config = robot.GetActiveConfigurationSpecification()
+    config.AddDeltaTimeGroup()
+    traj.Init(config)
+    node = goalNode
+    while node!=None:
+        step = list(node.pos)+[TIME_DELTA]
+        traj.Insert(0, step)
+        node = node.prev
+    planningutils.RetimeActiveDOFTrajectory(traj, robot)
+
+    # Init controller 
+    controller = robot.GetController()
+    controller.SetPath(traj)
+    '''
 
 # planner for 2D plannar trajectory
 def plannarPlanner(query, env, robot):
@@ -81,3 +112,4 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
         if isConnect(maps[0].init_node, maps[0].goal_node, rtn_tbl): break
 
     return rtn_tbl,maps[0].init_node,maps[0].goal_node
+

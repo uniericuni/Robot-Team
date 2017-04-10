@@ -28,24 +28,46 @@ TRANS_ERR = RADIUS/10000
 ISDISPLAY = True
 
 # system status
-LOCK = True
-UNLOCK = False
+UNLOCK = 0
+LOCK0 = 1
+LOCKN = 2
 
 # number of homogeneous robots
-INSTANCE_NUM = 21
+INSTANCE_NUM = 11
 
 # maximum multimodal sampling iteration
 MM_MAX_ITER = 50
 MAX_SAMPLING_TIME = 10
 
 # experiment one field constraint
-X_MIN1 = -10
+STEP = 0.2          # margin
+X_MIN1 = -10 + STEP
 X_MAX1 = -2.2
-X_MIN2 = 10
-X_MAX2 = 2.2
-Y_MAX = 10
-Y_MIN = -10
+X_MIN2 = 2.2
+X_MAX2 = 10 - STEP
+Y_MIN = -10 + STEP
+Y_MAX = 10 - STEP
 Z = 20.3
 
 # cliff length
 CLIFF = 4
+
+
+# =========================
+# ASTAR
+# =========================
+
+H_PRIOR = 100     # heuristic weighting (k times step cost)
+
+FLOAT_MAX = 1e+100
+FLOAT_MIN = 1e-100
+
+MAX_ERR = STEP*2
+MAX_ITER = 200/(STEP*STEP)
+TIME_DELTA = 0.01
+
+pi = 3.1415926
+x_step = STEP
+y_step = STEP
+r_step = pi/2
+point_size = x_step * 50.0

@@ -20,6 +20,7 @@ class HomogeneousRobotTeam:
                        configs=None):           # assigned initial configuration for each bot 
 
         # define system parameters
+        np.random.seed()
         self.env = env
         self.instance_xml = instance_xml
         self.instance_number = instance_number
@@ -29,10 +30,12 @@ class HomogeneousRobotTeam:
         self.log = Log(ISDISPLAY)
         self.planner = None
         self.query = None
+        self.trajectories = {}
 
         # instantialize homogeneous robots
         self.robots = []
         for i in range(instance_number):
+            self.trajectories[i] = []
             robot_instance = self.env.ReadRobotURI(instance_xml)
             robot_instance.SetName('robot%d'%i)
             if configs:
@@ -44,6 +47,7 @@ class HomogeneousRobotTeam:
 
     # lock robot team into a single .xml and bind by joints
     def lock(self, xml_template,                # file path to robot team model template 
+                   lock_mode,                   # LOCK BASE 0 or BASE N
                    enforced=True,               # enforce to align according to joint_type
                    print_out=False):            # print out generated xml tree
 
@@ -55,12 +59,18 @@ class HomogeneousRobotTeam:
         tree = ET.parse(xml_template)
         root = tree.getroot()
 
+        # decide lock base
+        if lock_mode == LOCK0:
+            iterator = self.robots[:]
+        else:
+            iterator = self.robots[::-1]
+        
         # lock robots
         # TODO: joint type
         wrapper_joint = ET.Element('Robot')
         wrapper_kinbody = ET.Element('Kinbody')
         joint_list = []
-        for i,robot in enumerate(self.robots):
+        for i,robot in enumerate(iterator):
      
             # create robot node
             wrapper = ET.Element('Robot')
@@ -92,17 +102,21 @@ class HomogeneousRobotTeam:
             axis = ET.Element('axis'); axis.text = '0 0 1'
             #anchor = ET.Element('Anchor'); anchor.text = ' '.join([str(v) for v in anchor_unit_vec])
             #anchor = ET.Element('Anchor'); anchor.text = ' '.join([str(v) for v in anchor_unit_vec])
+            #joint.append(anchor)
             joint.append(body1)
             joint.append(body2)
             joint.append(offset)
             joint.append(axis)
-            #joint.append(anchor)
             wrapper_kinbody.append(joint)
 
         # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
-        base = ET.Element('base'); base.text = '%d_Base'%(self.instance_number-1)
-        eff = ET.Element('effector'); eff.text = '0_Base'
+        if lock_mode == LOCK0:
+            base = ET.Element('base'); base.text = '%d_Base'%(self.instance_number-1)
+            eff = ET.Element('effector'); eff.text = '0_Base'
+        else:
+            base = ET.Element('base'); base.text = '0_Base'
+            eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
         manipulator.append(eff)
         manipulator.append(base)
         wrapper_joint.append(wrapper_kinbody)
@@ -125,15 +139,15 @@ class HomogeneousRobotTeam:
 
         # system log
         self.log.msg('Sys', 'robot team modeled')
-        self.status = LOCK
+        self.status = lock_mode
         return self.lock_robot
      
     # TODO: unlock robot team and destroy temporary .xml
-    def unLockRobots(self):
+    def unlock(self):
+        pass
         
         # delete the temporary robot group model
-        os.remove(self.lock_xml)
-
+        # os.remove(self.lock_xml)
         # restore robot configuration
 
     # enforce team configurations
@@ -146,10 +160,17 @@ class HomogeneousRobotTeam:
             radius = RADIUS 
 
         # bound robots in radius
-        prev_robot = self.robots[0]
-        for robot in self.robots[1:]:
-            self.moveUntil(prev_robot, robot, radius)
-            prev_robot = robot
+        if self.status == LOCK0:
+            prev_robot = self.robots[0]
+            for robot in self.robots[1:]:
+                self.moveUntil(prev_robot, robot, radius)
+                prev_robot = robot
+
+        else:
+            prev_robot = self.robots[-1]
+            for robot in self.robots[-2::-1]:
+                self.moveUntil(prev_robot, robot, radius)
+                prev_robot = robot
       
     # enforce one kinbody move towards to another as near as possible
     def moveUntil(self, obj1,                   # target kinbody
@@ -165,7 +186,7 @@ class HomogeneousRobotTeam:
         self.log.msg('Sys', 'robot assemblied')
 
     # setup planner
-    def setPlanner(self, planner, query):
+    def setPlanner(self, planner, query, mode=0):
         self.query = query
         self.planner = planner
         self.log.msg('Sys', 'planner setup')
@@ -179,7 +200,7 @@ class HomogeneousRobotTeam:
             return 
 
         # plan for locked robot
-        if self.status==LOCK:
+        if self.status==LOCK0:
             try:
                 solutions = self.planner(self.query, self.env, self.lock_robot)
                 self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
@@ -188,7 +209,44 @@ class HomogeneousRobotTeam:
 
         # plan for unlocked robot
         else:
+            pos = np.array(self.robots[0].GetActiveDOFValues())
+            query = self.query
+            self.planner( [pos, query], self.env, self.robots[0] )
+            self.log.msg('Sys', 'path found for robot %d'%0)
+
+            for i in range(1,self.instance_number):
+            #for i in range(1,14):
+
+                # catch current config
+                pos = np.array(self.robots[i].GetActiveDOFValues())
+                
+                # check for target collision
+                count = 0
+                while True:
+                    if count%3==0:
+                        r = np.array([0, RADIUS*3/100, 0])
+                    elif count%3==1:
+                        r = np.array([0, -RADIUS*3/100, 0])
+                    else:
+                        r = np.array([-RADIUS*3/100, 0, 0])
+                    count += 1
+                    #r = (pos-query) * (float(RADIUS)/100)*6 * np.random.random() / np.linalg.norm(pos-query)
+                    #r = np.random.random(3)*RADIUS*float(8)/100+RADIUS*float(4)/100; r[2] = 0;
+                    #if count%100==0: query = query - [0.5,0,0]
+                    pos_ = query + r
+                    self.robots[i].SetActiveDOFValues(pos_)
+                    self.log.msg('Sys', 'check target collision')
+                    print pos_
+                    if (pos_[0]>X_MIN1 and pos_[0]<X_MAX1 and pos_[1]>Y_MIN and pos_[1]<Y_MAX) and ( not self.env.CheckCollision(self.robots[i]) ):
+                        break
+
+                # planning
+                query = pos_
+                self.planner( [pos, query], self.env, self.robots[i] )
+                self.log.msg('Sys', 'path found for robot %d'%i)
+
             try:
-                self.planner(self.query, self.env, self.robots)
+                self.planner(self.query, self.env, self.robots[i])
+                self.log.msg('Sys', 'path found for query')
             except:
                 self.log.msg('Error', 'planner function and arguments not match')
