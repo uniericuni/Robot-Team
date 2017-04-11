@@ -22,7 +22,7 @@ INSTANCE_ROBOT = MODELS + 'robots/ball.kinbody.xml'
 
 # default of robot spherical raidus
 RADIUS = 30.0
-TRANS_ERR = RADIUS/10000
+TRANS_ERR = RADIUS/1000
 
 #
 ISDISPLAY = True
@@ -33,7 +33,7 @@ LOCK0 = 1
 LOCKN = 2
 
 # number of homogeneous robots
-INSTANCE_NUM = 3
+INSTANCE_NUM = 12
 
 # maximum multimodal sampling iteration
 MM_MAX_ITER = 50
@@ -70,3 +70,8 @@ x_step = STEP
 y_step = STEP
 r_step = pi/2
 point_size = x_step * 50.0
+
+# =========================
+# ROTATION
+# =========================
+ROT_ERR = 0.1

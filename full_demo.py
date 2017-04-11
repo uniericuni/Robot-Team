@@ -33,7 +33,7 @@ if __name__ == "__main__":
     query = np.array([-2.2, 0])
     with env:
         init_configs = [   [[ 1,0,0,-8.5],
-                            [0,1,0,(i%11)*1.5-6.5],
+                            [0,1,0,(i%12)*1.3-6.2],
                             [0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
         robots = HomogeneousRobotTeam(  env,
                                         INSTANCE_ROBOT,
@@ -62,7 +62,7 @@ if __name__ == "__main__":
  
         # instantitate multi-modal sampler
         n = float(robots.instance_number-1)
-        pr = float(RADIUS*2)*(n-1)/100
+        pr = (float(RADIUS*2)*(n-1)-TRANS_ERR)/100
         sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=pr)
         sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=pr)
         sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=pr)
@@ -141,8 +141,8 @@ if __name__ == "__main__":
         elif mode0 == 1:
             with env:
                 robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
-                robots.setPlanner(plannarPlanner, query)
-                raw_input("Press enter to exit...")
+                robots.setPlanner(rotationPlanner, query)
+            raw_input("Press enter to exit...")
             with env:
                 robots.planning()
 

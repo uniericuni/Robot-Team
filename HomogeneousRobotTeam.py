@@ -52,6 +52,7 @@ class HomogeneousRobotTeam:
                    print_out=False):            # print out generated xml tree
 
         # enforce robots to certain team configuration
+        self.status = lock_mode
         if enforced:
             self.enforce()
 
@@ -111,10 +112,12 @@ class HomogeneousRobotTeam:
 
         # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
-        base = ET.Element('base'); base.text = '%d_Base'%(self.instance_number-1)
-        eff = ET.Element('effector'); eff.text = '0_Base'
+        base = ET.Element('base'); base.text = '0_Base'
+        eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
+        #joints = ET.Element('joints'); joints.text = '0-to-1 1-to-2';
         manipulator.append(base)
         manipulator.append(eff)
+        #manipulator.append(joints)
         wrapper_joint.append(wrapper_kinbody)
         wrapper_joint.append(manipulator)
         root.append(wrapper_joint)
@@ -135,12 +138,11 @@ class HomogeneousRobotTeam:
 
         # system log
         self.log.msg('Sys', 'robot team modeled')
-        self.status = lock_mode
         return self.lock_robot
      
     # TODO: unlock robot team and destroy temporary .xml
     def unlock(self):
-        pass
+        self.status = UNLOCK
         
         # delete the temporary robot group model
         # os.remove(self.lock_xml)
@@ -156,15 +158,15 @@ class HomogeneousRobotTeam:
             radius = RADIUS 
 
         # bound robots in radius
-        if self.status == LOCK0:
-            prev_robot = self.robots[0]
-            for robot in self.robots[1:]:
+        if self.status == LOCKN:
+            prev_robot = self.robots[-1]
+            for robot in self.robots[-2::-1]:
                 self.moveUntil(prev_robot, robot, radius)
                 prev_robot = robot
 
-        else:
-            prev_robot = self.robots[-1]
-            for robot in self.robots[-2::-1]:
+        if self.status == LOCK0:
+            prev_robot = self.robots[0]
+            for robot in self.robots[1:]:
                 self.moveUntil(prev_robot, robot, radius)
                 prev_robot = robot
       
@@ -196,9 +198,9 @@ class HomogeneousRobotTeam:
             return 
 
         # plan for locked robot
-        if self.status==LOCK0 or LOCKN:
+        if self.status==LOCK0 or self.status==LOCKN:
             #try:
-            solutions = self.planner(self.query, self.env, self.lock_robot)
+            solutions = self.planner(self.query, self.env, self.lock_robot, '%d_Base'%(self.instance_number-1))
             self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
             return solutions
             #except:

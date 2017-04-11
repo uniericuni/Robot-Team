@@ -44,12 +44,14 @@ def astarPlanner(query, env, robot):
 def plannarPlanner(query, env, robot):
 
     # generate the ik solver
+    robot.SetActiveDOFValues([1,2])
     iktype = IkParameterization.Type.TranslationXY2D
     ikmodel = databases.inversekinematics.InverseKinematicsModel( robot,
                                                                   iktype=iktype )
     if not ikmodel.load():
         ikmodel.autogenerate()
 
+    raw_input("Press enter to exit...")
     # generate ik solution solution
     with env:
         while True:
@@ -59,6 +61,59 @@ def plannarPlanner(query, env, robot):
 
     # return trajectory
     return solutions
+
+# homemade planner
+def rotationPlanner(query, env, robot, ee):
+
+    # pruning redundant dimension
+    if len(query)==3:
+        query = query[0:2]
+
+    with env:
+        for dof in range(robot.GetActiveDOF()):
+
+            min_val = float('inf')
+            min_id = 0
+            pos = np.array(robot.GetLinks()[dof].GetTransform())[0:2,3]
+
+            # iteratively check for best
+            for i in range(36):
+                
+                value = robot.GetActiveDOFValues()
+                if dof==0:
+                    value[dof] = i*PI/18
+                else:
+                    value[dof] = i*PI/36
+                robot.SetActiveDOFValues(value)
+                
+                # check self collision
+                if robot.CheckSelfCollision():
+                    continue
+
+                # iteratively check for best
+                if np.linalg.norm(pos-query) < min_val:
+                    min_val = np.linalg.norm(pos-query)
+                    min_id = i
+            
+            # set dof value
+            value = robot.GetActiveDOFValues()
+            if dof==0:
+                value[dof] = min_id*PI/18
+            else:
+                value[dof] = min_id*PI/36
+            robot.SetActiveDOFValues(value)
+
+    # return trajectory, if fail, run again
+    pos = np.array(robot.GetLink(ee).GetTransform())[0:2,3]
+    return robot.GetActiveDOFValues()
+
+    '''
+    if np.linalg.norm(pos-query) < ROT_ERR:
+        return robot.GetActiveDOFValues()
+    else:
+        raw_input("Press enter to exit...")
+        rotationPlanner(query, env, robot, ee)
+    '''
 
 # multi-modal planner
 def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):

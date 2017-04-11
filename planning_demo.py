@@ -29,7 +29,6 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # generate robot team
-    query = np.array([-2.2, 0])
     with env:
         init_configs = [ [[ 1,0,0,-2.2],[0,1,0,2*i],[0,0,1,20.3]] for i in range(INSTANCE_NUM) ] # TODO: random init
         robots = HomogeneousRobotTeam(  env,
@@ -41,16 +40,7 @@ if __name__ == "__main__":
                                         'chain',
                                         init_configs )
         lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
-        robots.setPlanner(plr.plannarPlanner, query)
-    raw_input("Press enter to exit...")
+        print lock_robot.GetLinks()[0].GetTransform()
+        lock_robot.SetActiveDOFValues([pi/2,pi/2])
 
-    while True:
-        while True:
-            print 'Try ...'
-            query = np.array([-2.2, 0]) + 0.2*np.random.random(2)
-            solutions = robots.planning()
-            print 'Try ...'
-            if solutions is not None and len(solutions) > 0:
-                break
-        print solutions
-        raw_input("Press enter to exit...")
+    raw_input("Press enter to exit...")
