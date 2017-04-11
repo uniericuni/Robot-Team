@@ -14,7 +14,6 @@ if not __openravepy_build_doc__:
 
 # astar for 2D plannar trajectory
 def astarPlanner(query, env, robot):
-    print query
     start = query[0]
     goal = query[1]
     distMethod = utility.eDist

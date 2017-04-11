@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import time
 import openravepy
-import Planner
+import Planner as plr
 
 from HomogeneousRobotTeam import *
 from config import *
@@ -40,8 +40,17 @@ if __name__ == "__main__":
                                         (DOFAffine.X|DOFAffine.Y|DOFAffine.Z),
                                         'chain',
                                         init_configs )
-        lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE )
-        robots.setPlanner(planner.plannarPlanner, query)
-        robots.planning()
-                                    
+        lock_robot = robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
+        robots.setPlanner(plr.plannarPlanner, query)
     raw_input("Press enter to exit...")
+
+    while True:
+        while True:
+            print 'Try ...'
+            query = np.array([-2.2, 0]) + 0.2*np.random.random(2)
+            solutions = robots.planning()
+            print 'Try ...'
+            if solutions is not None and len(solutions) > 0:
+                break
+        print solutions
+        raw_input("Press enter to exit...")

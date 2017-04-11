@@ -33,7 +33,7 @@ LOCK0 = 1
 LOCKN = 2
 
 # number of homogeneous robots
-INSTANCE_NUM = 11
+INSTANCE_NUM = 3
 
 # maximum multimodal sampling iteration
 MM_MAX_ITER = 50
@@ -51,7 +51,6 @@ Z = 20.3
 
 # cliff length
 CLIFF = 4
-
 
 # =========================
 # ASTAR

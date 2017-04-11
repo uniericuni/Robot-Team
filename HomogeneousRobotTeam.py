@@ -111,14 +111,10 @@ class HomogeneousRobotTeam:
 
         # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
-        if lock_mode == LOCK0:
-            base = ET.Element('base'); base.text = '%d_Base'%(self.instance_number-1)
-            eff = ET.Element('effector'); eff.text = '0_Base'
-        else:
-            base = ET.Element('base'); base.text = '0_Base'
-            eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
-        manipulator.append(eff)
+        base = ET.Element('base'); base.text = '%d_Base'%(self.instance_number-1)
+        eff = ET.Element('effector'); eff.text = '0_Base'
         manipulator.append(base)
+        manipulator.append(eff)
         wrapper_joint.append(wrapper_kinbody)
         wrapper_joint.append(manipulator)
         root.append(wrapper_joint)
@@ -200,12 +196,13 @@ class HomogeneousRobotTeam:
             return 
 
         # plan for locked robot
-        if self.status==LOCK0:
-            try:
-                solutions = self.planner(self.query, self.env, self.lock_robot)
-                self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
-            except:
-                self.log.msg('Error', 'planner function and arguments not match')
+        if self.status==LOCK0 or LOCKN:
+            #try:
+            solutions = self.planner(self.query, self.env, self.lock_robot)
+            self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
+            return solutions
+            #except:
+                #self.log.msg('Error', 'planner function and arguments not match')
 
         # plan for unlocked robot
         else:
@@ -223,6 +220,7 @@ class HomogeneousRobotTeam:
                 # check for target collision
                 count = 0
                 while True:
+                    '''
                     if count%3==0:
                         r = np.array([0, RADIUS*3/100, 0])
                     elif count%3==1:
@@ -230,13 +228,13 @@ class HomogeneousRobotTeam:
                     else:
                         r = np.array([-RADIUS*3/100, 0, 0])
                     count += 1
-                    #r = (pos-query) * (float(RADIUS)/100)*6 * np.random.random() / np.linalg.norm(pos-query)
+                    '''
+                    r = (pos-query) * (float(RADIUS)/100)*4 * np.random.random() / np.linalg.norm(pos-query)
                     #r = np.random.random(3)*RADIUS*float(8)/100+RADIUS*float(4)/100; r[2] = 0;
                     #if count%100==0: query = query - [0.5,0,0]
                     pos_ = query + r
                     self.robots[i].SetActiveDOFValues(pos_)
                     self.log.msg('Sys', 'check target collision')
-                    print pos_
                     if (pos_[0]>X_MIN1 and pos_[0]<X_MAX1 and pos_[1]>Y_MIN and pos_[1]<Y_MAX) and ( not self.env.CheckCollision(self.robots[i]) ):
                         break
 
@@ -244,9 +242,10 @@ class HomogeneousRobotTeam:
                 query = pos_
                 self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)
-
+            '''
             try:
                 self.planner(self.query, self.env, self.robots[i])
                 self.log.msg('Sys', 'path found for query')
             except:
                 self.log.msg('Error', 'planner function and arguments not match')
+            '''
