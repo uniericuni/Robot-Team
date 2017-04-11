@@ -33,7 +33,7 @@ LOCK0 = 1
 LOCKN = 2
 
 # number of homogeneous robots
-INSTANCE_NUM = 12
+INSTANCE_NUM = 14
 
 # maximum multimodal sampling iteration
 MM_MAX_ITER = 50

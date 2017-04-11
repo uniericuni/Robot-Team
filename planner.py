@@ -63,6 +63,7 @@ def plannarPlanner(query, env, robot):
     return solutions
 
 # homemade planner
+# TODO: smoothing step
 def rotationPlanner(query, env, robot, ee):
 
     # pruning redundant dimension
@@ -74,7 +75,6 @@ def rotationPlanner(query, env, robot, ee):
 
             min_val = float('inf')
             min_id = 0
-            pos = np.array(robot.GetLinks()[dof].GetTransform())[0:2,3]
 
             # iteratively check for best
             for i in range(36):
@@ -91,6 +91,7 @@ def rotationPlanner(query, env, robot, ee):
                     continue
 
                 # iteratively check for best
+                pos = np.array(robot.GetLinks()[dof+1].GetTransform())[0:2,3]
                 if np.linalg.norm(pos-query) < min_val:
                     min_val = np.linalg.norm(pos-query)
                     min_id = i
