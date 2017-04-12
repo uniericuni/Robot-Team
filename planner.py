@@ -14,6 +14,7 @@ if not __openravepy_build_doc__:
 
 # astar for 2D plannar trajectory
 def astarPlanner(query, env, robot):
+
     start = query[0]
     goal = query[1]
     distMethod = utility.eDist
@@ -21,8 +22,14 @@ def astarPlanner(query, env, robot):
     goalNode, explored, collided = astar(start, goal, distMethod, expandMethod, robot, env)
     robot.SetActiveDOFValues(goalNode.pos)
 
-    # parse trajectory
     # Create trajectory
+    rtn = []
+    node = goalNode
+    while node!=None:
+        rtn.append(np.array(node.pos))
+        node = node.prev
+    rtn = rtn[::-1]
+    return rtn
     '''
     traj = RaveCreateTrajectory(env, '')
     config = robot.GetActiveConfigurationSpecification()
@@ -33,7 +40,6 @@ def astarPlanner(query, env, robot):
         step = list(node.pos)+[TIME_DELTA]
         traj.Insert(0, step)
         node = node.prev
-    planningutils.RetimeActiveDOFTrajectory(traj, robot)
 
     # Init controller 
     controller = robot.GetController()
@@ -65,6 +71,8 @@ def plannarPlanner(query, env, robot):
 def rotationPlanner(query, env, robot, ee):
 
     # pruning redundant dimension
+    origin = robot.GetActiveDOFValues()
+
     if len(query)==3:
         query = query[0:2]
 
@@ -103,12 +111,17 @@ def rotationPlanner(query, env, robot, ee):
             robot.SetActiveDOFValues(value)
 
     # return trajectory, if fail, run again
-    return robot.GetActiveDOFValues()
+    rtn = []
+    k = 30
+    step = (np.array(robot.GetActiveDOFValues()) - np.array(origin))/k
+    rtn = [origin + step*i for i in range(k+1)]
+    return rtn
 
 # homemade planner
 def rotationPlacer(query, env, robot, ee):
 
     # pruning redundant dimension
+    origin = robot.GetActiveDOFValues()
     if len(query)==3:
         query = query[0:2]
 
@@ -145,7 +158,11 @@ def rotationPlacer(query, env, robot, ee):
                 dof -= 1
 
     # return trajectory, if fail, run again
-    return robot.GetActiveDOFValues()
+    rtn = []
+    k = 30
+    step = (np.array(robot.GetActiveDOFValues()) - np.array(origin))/k
+    rtn = [origin + step*i for i in range(k+1)]
+    return rtn
 
 # multi-modal planner
 def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):

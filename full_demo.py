@@ -136,31 +136,35 @@ if __name__ == "__main__":
                 robots.unlock()
                 robots.setPlanner(astarPlanner, query)
                 robots.planning()
+            raw_input("Press enter to exit...")
+            robots.release()
 
         # use LOCK_BASE0 or N planner to realize the bridge
         elif mode1 == 1 or mode1 == 2:
+            robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
             with env:
-                robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
                 robots.setPlanner(rotationPlanner, query)
             raw_input("Press enter to exit...")
             with env:
                 robots.planning()
+            robots.release()
 
         # use LOCK_BASE0 or N to get back to UNLOCK
         elif mode1 == 0:
             with env:
                 robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN, enforced=False )
                 robots.setPlanner(rotationPlacer, query)
-            raw_input("Press enter to exit...")
-            with env:
                 robots.planning()
+            raw_input("Press enter to exit...")
+            robots.release()
 
         raw_input("Press enter to exit...")
 
     # final distributed task
+    robots.unlock()
     with env:
-        robots.unlock()
         robots.setPlanner(astarPlanner, final_task)
-        robots.planning(is_distributed=True)
+    robots.planning(is_distributed=True)
+    robots.release()
                                     
     raw_input("Press enter to exit...")

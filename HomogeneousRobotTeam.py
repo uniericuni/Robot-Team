@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 import numpy as np
 import openravepy
-import os
+import os, time
 
 from config import *
 from Sampler import *
@@ -30,7 +30,7 @@ class HomogeneousRobotTeam:
         self.log = Log(ISDISPLAY)
         self.planner = None
         self.query = None
-        self.trajectories = {}
+        self.trajectory = {}
         self.active_dofs = [ active_joint_dofs,
                              active_affine_dofs ]
         self.ACC = 0
@@ -38,7 +38,7 @@ class HomogeneousRobotTeam:
         # instantialize homogeneous robots
         self.robots = []
         for i in range(instance_number):
-            self.trajectories[i] = []
+            self.trajectory[i] = []
             robot_instance = self.env.ReadRobotURI(instance_xml)
             robot_instance.SetName('robot%d'%(self.ACC) )
             self.ACC += 1
@@ -56,6 +56,7 @@ class HomogeneousRobotTeam:
                    print_out=False):            # print out generated xml tree
 
         # unlock the robot first if the robot is locked
+        self.release()
         if self.status == LOCK0 or self.status == LOCKN:
             self.unlock()
 
@@ -159,6 +160,7 @@ class HomogeneousRobotTeam:
         if self.status == UNLOCK:
             return 
 
+        self.release()
         self.robots = []
         self.status = UNLOCK
         links =  self.lock_robot.GetLinks()
@@ -181,31 +183,27 @@ class HomogeneousRobotTeam:
         except:
             radius = RADIUS 
 
-        # bound robots in radius
-        if self.status == LOCKN:
-            prev_robot = self.robots[-1]
-            for robot in self.robots[-2::-1]:
-                self.moveUntil(prev_robot, robot, radius)
-                prev_robot = robot
-
-        if self.status == LOCK0:
+        if self.status == LOCK0 or LOCKN:
             prev_robot = self.robots[0]
-            for robot in self.robots[1:]:
-                self.moveUntil(prev_robot, robot, radius)
+            for i,robot in enumerate(self.robots[1:]):
+                rtn = self.moveUntil(prev_robot, robot, radius)
+                self.trajectory[i].extend(rtn)
                 prev_robot = robot
       
     # enforce one kinbody move towards to another as near as possible
     def moveUntil(self, obj1,                   # target kinbody
                         obj2,                   # enforced kinbody
                         rad,                    # assumed kinbody volume sphere
-                        away=False):            # move away
+                        away=False):             # move away
 
         # move close
+        rtn = []
         if not away:
             diff = np.array(obj1.GetTransform()) - np.array(obj2.GetTransform())
             while np.linalg.norm(diff) > rad*2/100+TRANS_ERR:
                 obj2.SetTransform( np.array(obj2.GetTransform()) + (diff*TRANS_ERR/2)/np.linalg.norm(diff) )
                 diff = np.array(obj1.GetTransform()) - np.array(obj2.GetTransform())
+                rtn.append(obj2.GetActiveDOFValues())
 
             # system log
             self.log.msg('Sys', 'robot assemblied')
@@ -216,11 +214,11 @@ class HomogeneousRobotTeam:
             while np.linalg.norm(diff) < rad*2/100+TRANS_ERR:
                 obj2.SetTransform( np.array(obj2.GetTransform()) + (diff*TRANS_ERR/2)/np.linalg.norm(diff) )
                 diff = np.array(obj2.GetTransform()) - np.array(obj1.GetTransform())
+                rtn.append(obj2.GetActiveDOFValues())
 
             # system log
             self.log.msg('Sys', 'robot departed')
-
-            raw_input("Press enter to exit...")
+        return rtn
 
     # setup planner
     def setPlanner(self, planner, query, mode=0):
@@ -239,9 +237,9 @@ class HomogeneousRobotTeam:
         # plan for locked robot
         if self.status==LOCK0 or self.status==LOCKN:
             #try:
-            solutions = self.planner(self.query, self.env, self.lock_robot, '%d_Base'%(self.instance_number-1))
+            rtn = self.planner(self.query, self.env, self.lock_robot, '%d_Base'%(self.instance_number-1))
             self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
-            return solutions
+            self.trajectory[0] = rtn
             #except:
                 #self.log.msg('Error', 'planner function and arguments not match')
 
@@ -249,13 +247,16 @@ class HomogeneousRobotTeam:
         elif not is_distributed:
             pos = np.array(self.robots[0].GetActiveDOFValues())
             query = self.query
-            self.planner( [pos, query], self.env, self.robots[0] )
+            with self.env:
+                rtn = self.planner( [pos, query], self.env, self.robots[0] )
             self.log.msg('Sys', 'path found for robot %d'%0)
+            self.trajectory[0].extend(rtn)
 
             for i in range(1,self.instance_number):
             #for i in range(1,14):
 
                 # catch current config
+                origin = self.robots[i].GetActiveDOFValues()
                 pos = np.array(self.robots[i].GetActiveDOFValues())
                 
                 # check for target collision
@@ -271,8 +272,11 @@ class HomogeneousRobotTeam:
 
                 # planning
                 query = pos_
-                self.planner( [pos, query], self.env, self.robots[i] )
+                with self.env:
+                    rtn = self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)
+                self.trajectory[i].extend(rtn)
+                self.trajectory[i].append(list(pos_))
     
         # astar, distributedly
         else:
@@ -283,5 +287,30 @@ class HomogeneousRobotTeam:
                     self.moveUntil( self.robots[i-1], self.robots[i], RADIUS*2, away=True)
                 pos = np.array(self.robots[i].GetActiveDOFValues())
                 query = self.query[i]
-                self.planner( [pos, query], self.env, self.robots[i] )
+                with self.env:
+                    rtn = self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)
+                self.trajectory[i].extend(rtn)
+
+    # planning
+    def release(self, inverse=False):
+       
+        if self.status==UNLOCK:
+            if not inverse:
+                for i in range(self.instance_number):
+                    while len(self.trajectory[i])>0:
+                        pos = self.trajectory[i].pop(0)
+                        self.robots[i].SetActiveDOFValues(pos)
+                        time.sleep(TIME_DELTA*10)
+            else:
+                for i in range(self.instance_number):
+                    while len(self.trajectory[i])>0:
+                        pos = self.trajectory[i].pop(0)
+                        self.robots[i].SetActiveDOFValues(pos)
+                        time.sleep(TIME_DELTA*10)
+
+        else:
+            while len(self.trajectory[0])>0:
+                pos = self.trajectory[0].pop(0)
+                self.lock_robot.SetActiveDOFValues(pos)
+                time.sleep(TIME_DELTA*10)
