@@ -51,7 +51,6 @@ def plannarPlanner(query, env, robot):
     if not ikmodel.load():
         ikmodel.autogenerate()
 
-    raw_input("Press enter to exit...")
     # generate ik solution solution
     with env:
         while True:
@@ -63,7 +62,6 @@ def plannarPlanner(query, env, robot):
     return solutions
 
 # homemade planner
-# TODO: smoothing step
 def rotationPlanner(query, env, robot, ee):
 
     # pruning redundant dimension
@@ -77,13 +75,13 @@ def rotationPlanner(query, env, robot, ee):
             min_id = 0
 
             # iteratively check for best
-            for i in range(36):
+            for i in range(0,60):
                 
                 value = robot.GetActiveDOFValues()
                 if dof==0:
-                    value[dof] = i*PI/18
+                    value[dof] = i*PI/30
                 else:
-                    value[dof] = i*PI/36
+                    value[dof] = i*PI/180
                 robot.SetActiveDOFValues(value)
                 
                 # check self collision
@@ -99,22 +97,14 @@ def rotationPlanner(query, env, robot, ee):
             # set dof value
             value = robot.GetActiveDOFValues()
             if dof==0:
-                value[dof] = min_id*PI/18
+                value[dof] = min_id*PI/30
             else:
-                value[dof] = min_id*PI/36
+                value[dof] = min_id*PI/180
             robot.SetActiveDOFValues(value)
 
     # return trajectory, if fail, run again
     pos = np.array(robot.GetLink(ee).GetTransform())[0:2,3]
     return robot.GetActiveDOFValues()
-
-    '''
-    if np.linalg.norm(pos-query) < ROT_ERR:
-        return robot.GetActiveDOFValues()
-    else:
-        raw_input("Press enter to exit...")
-        rotationPlanner(query, env, robot, ee)
-    '''
 
 # multi-modal planner
 def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
