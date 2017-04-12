@@ -124,7 +124,8 @@ if __name__ == "__main__":
         query = [init_anchor.getVal(), goal_anchor.getVal()]
         mode0 = init_anchor.mode
         mode1 = goal_anchor.mode
-        print 'from mode%d to mode%d'%(mode0,mode1), ' | query: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
+        print '\nfrom mode%d to mode%d'%(mode0,mode1), ' | query: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
+        print '-'*20
 
 
         query_pair = query
@@ -137,22 +138,22 @@ if __name__ == "__main__":
                 robots.setPlanner(astarPlanner, query)
                 robots.planning()
 
-        # use LOCK_BASE0 planner to realize the path
-        elif mode0 == 1:
+        # use LOCK_BASE0 or N planner to realize the bridge
+        elif mode1 == 1 or mode1 == 2:
             with env:
                 robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
                 robots.setPlanner(rotationPlanner, query)
-            raw_input("Press enter to exit...")
-            with env:
                 robots.planning()
+            raw_input("Press enter to exit...")
 
+        # use LOCK_BASE0 or N to get back to UNLOCK
         '''
-        # use LOCK_BASEN planner to realize the path
-        elif mode0 == 2:
-            robots.lock( LOCK_ROBOT_TEMPLATE, LOCK1 )
-            robots.setPlanner(plannarPlanner, query)
-            robots.planning()
+        elif mode1 == 0:
+            with env:
+                robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN )
+                robots.setPlanner(rotationPlacer, query)
+                robots.planning()
+            raw_input("Press enter to exit...")
         '''
-        raw_input("Press enter to exit...")
                                     
     raw_input("Press enter to exit...")

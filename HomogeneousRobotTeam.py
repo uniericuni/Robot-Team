@@ -51,6 +51,10 @@ class HomogeneousRobotTeam:
                    enforced=True,               # enforce to align according to joint_type
                    print_out=False):            # print out generated xml tree
 
+        # unlock the robot first if the robot is locked
+        if self.status = LOCK0 or self.status = LOCKN:
+            self.unlock()
+
         # enforce robots to certain team configuration
         self.status = lock_mode
         if enforced:
@@ -128,9 +132,9 @@ class HomogeneousRobotTeam:
             ET.dump(root)
      
         # return lockded system
-        lock_robot = self.env.ReadRobotURI(self.lock_xml)
+        self.lock_robot = self.env.ReadRobotURI(self.lock_xml)
         self.env.AddRobot(lock_robot)
-        self.lock_robot = self.env.GetRobots()[self.instance_number]
+        self.robots = []
 
         # set manipulator
         self.lock_robot.SetActiveDOFs( [i for i in range(len(self.lock_robot.GetJoints()))] )
@@ -142,11 +146,20 @@ class HomogeneousRobotTeam:
      
     # TODO: unlock robot team and destroy temporary .xml
     def unlock(self):
+
+        if self.status = UNLOCK:
+            return 
+
+        self.robots = []
         self.status = UNLOCK
-        
-        # delete the temporary robot group model
-        # os.remove(self.lock_xml)
-        # restore robot configuration
+        links =  self.lock_robots.GetLinks()
+        for i in range(instance_number):
+            robot_instance = self.env.ReadRobotURI(instance_xml)
+            robot_instance.SetName('robot%d'%i)
+            robot_instance.SetTransform(links[i].GetTransform())
+            robot_instance.SetActiveDOFs(active_joint_dofs, active_affine_dofs)
+            self.robots.append(robot_instance)
+            self.env.AddRobot(robot_instance)
 
     # enforce team configurations
     def enforce(self):
@@ -222,18 +235,8 @@ class HomogeneousRobotTeam:
                 # check for target collision
                 count = 0
                 while True:
-                    '''
-                    if count%3==0:
-                        r = np.array([0, RADIUS*3/100, 0])
-                    elif count%3==1:
-                        r = np.array([0, -RADIUS*3/100, 0])
-                    else:
-                        r = np.array([-RADIUS*3/100, 0, 0])
-                    count += 1
-                    '''
+
                     r = (pos-query) * (float(RADIUS)/100)*4 * np.random.random() / np.linalg.norm(pos-query)
-                    #r = np.random.random(3)*RADIUS*float(8)/100+RADIUS*float(4)/100; r[2] = 0;
-                    #if count%100==0: query = query - [0.5,0,0]
                     pos_ = query + r
                     self.robots[i].SetActiveDOFValues(pos_)
                     self.log.msg('Sys', 'check target collision')
@@ -244,10 +247,3 @@ class HomogeneousRobotTeam:
                 query = pos_
                 self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)
-            '''
-            try:
-                self.planner(self.query, self.env, self.robots[i])
-                self.log.msg('Sys', 'path found for query')
-            except:
-                self.log.msg('Error', 'planner function and arguments not match')
-            '''
