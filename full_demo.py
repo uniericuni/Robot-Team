@@ -164,7 +164,7 @@ if __name__ == "__main__":
     robots.unlock()
     with env:
         robots.setPlanner(astarPlanner, final_task)
-    robots.planning(is_distributed=True)
+        robots.planning(is_distributed=True)
     robots.release()
                                     
     raw_input("Press enter to exit...")

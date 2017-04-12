@@ -83,7 +83,7 @@ def rotationPlanner(query, env, robot, ee):
             min_id = 0
 
             # iteratively check for best
-            for i in range(0,60):
+            for i in range(-30,31):
                 
                 value = robot.GetActiveDOFValues()
                 if dof==0:
@@ -133,7 +133,7 @@ def rotationPlacer(query, env, robot, ee):
 
             # iteratively check for placement
             isPlaced = False
-            for i in range(0,60):
+            for i in range(-30,31):
                 
                 value = robot.GetActiveDOFValues()
                 if dof==0:

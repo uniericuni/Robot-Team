@@ -56,14 +56,14 @@ class HomogeneousRobotTeam:
                    print_out=False):            # print out generated xml tree
 
         # unlock the robot first if the robot is locked
-        self.release()
         if self.status == LOCK0 or self.status == LOCKN:
             self.unlock()
 
         # enforce robots to certain team configuration
-        self.status = lock_mode
         if enforced:
+            self.release()
             self.enforce()
+        self.status = lock_mode
 
         # xml element tree initialization
         tree = ET.parse(xml_template)
@@ -96,7 +96,6 @@ class HomogeneousRobotTeam:
 
             # avoid circular link
             if i==0: 
-                self.env.Remove(robot)
                 continue
             
             # create joints
@@ -120,7 +119,6 @@ class HomogeneousRobotTeam:
             joint.append(offset)
             joint.append(axis)
             wrapper_kinbody.append(joint)
-            self.env.Remove(robot)
 
         # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
@@ -144,6 +142,8 @@ class HomogeneousRobotTeam:
         self.lock_robot.SetName('robot%d'%(self.ACC) )
         self.ACC += 1
         self.env.AddRobot(self.lock_robot)
+        for i,robot in enumerate(iterator):
+            self.env.Remove(robot)
         self.robots = []
 
         # set manipulator
@@ -183,12 +183,11 @@ class HomogeneousRobotTeam:
         except:
             radius = RADIUS 
 
-        if self.status == LOCK0 or LOCKN:
-            prev_robot = self.robots[0]
-            for i,robot in enumerate(self.robots[1:]):
-                rtn = self.moveUntil(prev_robot, robot, radius)
-                self.trajectory[i].extend(rtn)
-                prev_robot = robot
+        prev_robot = self.robots[0]
+        for i,robot in enumerate(self.robots[1:]):
+            rtn = self.moveUntil(prev_robot, robot, radius)
+            self.trajectory[i].extend(rtn)
+            prev_robot = robot
       
     # enforce one kinbody move towards to another as near as possible
     def moveUntil(self, obj1,                   # target kinbody
@@ -218,6 +217,7 @@ class HomogeneousRobotTeam:
 
             # system log
             self.log.msg('Sys', 'robot departed')
+        
         return rtn
 
     # setup planner
@@ -272,45 +272,46 @@ class HomogeneousRobotTeam:
 
                 # planning
                 query = pos_
-                with self.env:
-                    rtn = self.planner( [pos, query], self.env, self.robots[i] )
+                rtn = self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)
                 self.trajectory[i].extend(rtn)
                 self.trajectory[i].append(list(pos_))
     
         # astar, distributedly
         else:
-
-            for i in range(1,self.instance_number)[::-1]:
-                print self.robots[i] 
+            self.trajectory = {}
+            for i in range(0,self.instance_number)[::-1]:
+                self.trajectory[i] = []
                 if i-1>=0:
-                    self.moveUntil( self.robots[i-1], self.robots[i], RADIUS*2, away=True)
+                    rtn = self.moveUntil( self.robots[i-1], self.robots[i], RADIUS*2, away=True)            
+                    self.trajectory[i].extend(rtn)
                 pos = np.array(self.robots[i].GetActiveDOFValues())
                 query = self.query[i]
-                with self.env:
-                    rtn = self.planner( [pos, query], self.env, self.robots[i] )
+                rtn = self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)
                 self.trajectory[i].extend(rtn)
+                self.trajectory[i].append(list(query))
+                
 
     # planning
     def release(self, inverse=False):
        
         if self.status==UNLOCK:
             if not inverse:
-                for i in range(self.instance_number):
+                for i in range(0,self.instance_number)[::-1]:
                     while len(self.trajectory[i])>0:
                         pos = self.trajectory[i].pop(0)
                         self.robots[i].SetActiveDOFValues(pos)
-                        time.sleep(TIME_DELTA*10)
+                        time.sleep(TIME_DELTA)
             else:
                 for i in range(self.instance_number):
                     while len(self.trajectory[i])>0:
                         pos = self.trajectory[i].pop(0)
                         self.robots[i].SetActiveDOFValues(pos)
-                        time.sleep(TIME_DELTA*10)
+                        time.sleep(TIME_DELTA)
 
         else:
             while len(self.trajectory[0])>0:
                 pos = self.trajectory[0].pop(0)
                 self.lock_robot.SetActiveDOFValues(pos)
-                time.sleep(TIME_DELTA*10)
+                time.sleep(TIME_DELTA)
