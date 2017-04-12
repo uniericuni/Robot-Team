@@ -33,15 +33,13 @@ class HomogeneousRobotTeam:
         self.trajectories = {}
         self.active_dofs = [ active_joint_dofs,
                              active_affine_dofs ]
-        self.ACC = 0
 
         # instantialize homogeneous robots
         self.robots = []
         for i in range(instance_number):
             self.trajectories[i] = []
             robot_instance = self.env.ReadRobotURI(instance_xml)
-            robot_instance.SetName('robot%d'%(self.ACC) )
-            self.ACC += 1
+            robot_instance.SetName('robot%d'%i)
             if configs:
                 tf = configs[i]
                 robot_instance.SetTransform(tf)
@@ -94,9 +92,7 @@ class HomogeneousRobotTeam:
             root.append(wrapper)
 
             # avoid circular link
-            if i==0: 
-                self.env.Remove(robot)
-                continue
+            if i==0: continue
             
             # create joints
             # TODO: redefine the joint DOF so to achiev 3DOF in whole
@@ -119,7 +115,6 @@ class HomogeneousRobotTeam:
             joint.append(offset)
             joint.append(axis)
             wrapper_kinbody.append(joint)
-            self.env.Remove(robot)
 
         # define manipulator for chain
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
@@ -140,8 +135,6 @@ class HomogeneousRobotTeam:
      
         # return lockded system
         self.lock_robot = self.env.ReadRobotURI(self.lock_xml)
-        self.lock_robot.SetName('robot%d'%(self.ACC) )
-        self.ACC += 1
         self.env.AddRobot(self.lock_robot)
         self.robots = []
 
@@ -164,13 +157,11 @@ class HomogeneousRobotTeam:
         links =  self.lock_robot.GetLinks()
         for i in range(self.instance_number):
             robot_instance = self.env.ReadRobotURI(self.instance_xml)
-            robot_instance.SetName('robot%d'%(self.ACC) )
-            self.ACC += 1
+            robot_instance.SetName('robot%d'%i+len(self.env.GetRobots())
             robot_instance.SetTransform(links[i].GetTransform())
             robot_instance.SetActiveDOFs( self.active_dofs[0], self.active_dofs[1] )
             self.robots.append(robot_instance)
             self.env.AddRobot(robot_instance)
-        self.env.Remove(self.lock_robot)
 
     # enforce team configurations
     def enforce(self):
@@ -197,30 +188,15 @@ class HomogeneousRobotTeam:
     # enforce one kinbody move towards to another as near as possible
     def moveUntil(self, obj1,                   # target kinbody
                         obj2,                   # enforced kinbody
-                        rad,                    # assumed kinbody volume sphere
-                        away=False):            # move away
+                        rad):                   # assumed kinbody volume sphere
 
-        # move close
-        if not away:
+        diff = np.array(obj1.GetTransform()) - np.array(obj2.GetTransform())
+        while np.linalg.norm(diff) > rad*2/100+TRANS_ERR:
+            obj2.SetTransform( np.array(obj2.GetTransform()) + (diff*TRANS_ERR/2)/np.linalg.norm(diff) )
             diff = np.array(obj1.GetTransform()) - np.array(obj2.GetTransform())
-            while np.linalg.norm(diff) > rad*2/100+TRANS_ERR:
-                obj2.SetTransform( np.array(obj2.GetTransform()) + (diff*TRANS_ERR/2)/np.linalg.norm(diff) )
-                diff = np.array(obj1.GetTransform()) - np.array(obj2.GetTransform())
 
-            # system log
-            self.log.msg('Sys', 'robot assemblied')
-
-        # move away
-        else:
-            diff = np.array(obj2.GetTransform()) - np.array(obj1.GetTransform())
-            while np.linalg.norm(diff) < rad*2/100+TRANS_ERR:
-                obj2.SetTransform( np.array(obj2.GetTransform()) + (diff*TRANS_ERR/2)/np.linalg.norm(diff) )
-                diff = np.array(obj2.GetTransform()) - np.array(obj1.GetTransform())
-
-            # system log
-            self.log.msg('Sys', 'robot departed')
-
-            raw_input("Press enter to exit...")
+        # system log
+        self.log.msg('Sys', 'robot assemblied')
 
     # setup planner
     def setPlanner(self, planner, query, mode=0):
@@ -229,7 +205,7 @@ class HomogeneousRobotTeam:
         self.log.msg('Sys', 'planner setup')
 
     # planning
-    def planning(self, is_distributed = False):
+    def planning(self):
 
         # raised error when planner hasn't bee setup
         if self.planner is None or self.query is None:
@@ -246,7 +222,7 @@ class HomogeneousRobotTeam:
                 #self.log.msg('Error', 'planner function and arguments not match')
 
         # plan for unlocked robot
-        elif not is_distributed:
+        else:
             pos = np.array(self.robots[0].GetActiveDOFValues())
             query = self.query
             self.planner( [pos, query], self.env, self.robots[0] )
@@ -271,17 +247,5 @@ class HomogeneousRobotTeam:
 
                 # planning
                 query = pos_
-                self.planner( [pos, query], self.env, self.robots[i] )
-                self.log.msg('Sys', 'path found for robot %d'%i)
-    
-        # astar, distributedly
-        else:
-
-            for i in range(1,self.instance_number)[::-1]:
-                print self.robots[i] 
-                if i-1>=0:
-                    self.moveUntil( self.robots[i-1], self.robots[i], RADIUS*2, away=True)
-                pos = np.array(self.robots[i].GetActiveDOFValues())
-                query = self.query[i]
                 self.planner( [pos, query], self.env, self.robots[i] )
                 self.log.msg('Sys', 'path found for robot %d'%i)

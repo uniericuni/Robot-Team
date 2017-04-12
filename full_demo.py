@@ -28,6 +28,7 @@ if __name__ == "__main__":
     env.Reset()
     env.Load('data/robotTeamTest.env.xml')
     time.sleep(0.1)
+    final_task = [ np.array([8.5, (i%14)*1.2-6.5, 20.3]) for i in range(INSTANCE_NUM) ]
 
     # generate robot team
     query = np.array([-2.2, 0])
@@ -115,8 +116,6 @@ if __name__ == "__main__":
     # =================================================
 
     # plan for each transition
-    print '\nplanning ...'
-    print '-'*20
     for i in range(len(anchors)-1):
         
         # get anchor pair as init and goal
@@ -124,7 +123,7 @@ if __name__ == "__main__":
         query = [init_anchor.getVal(), goal_anchor.getVal()]
         mode0 = init_anchor.mode
         mode1 = goal_anchor.mode
-        print '\nfrom mode%d to mode%d'%(mode0,mode1), ' | query: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
+        print '\nfrom mode%d to mode%d'%(mode0,mode1), '\nquery: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
         print '-'*20
 
 
@@ -143,17 +142,25 @@ if __name__ == "__main__":
             with env:
                 robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
                 robots.setPlanner(rotationPlanner, query)
-                robots.planning()
             raw_input("Press enter to exit...")
+            with env:
+                robots.planning()
 
         # use LOCK_BASE0 or N to get back to UNLOCK
-        '''
         elif mode1 == 0:
             with env:
-                robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN )
+                robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN, enforced=False )
                 robots.setPlanner(rotationPlacer, query)
-                robots.planning()
             raw_input("Press enter to exit...")
-        '''
+            with env:
+                robots.planning()
+
+        raw_input("Press enter to exit...")
+
+    # final distributed task
+    with env:
+        robots.unlock()
+        robots.setPlanner(astarPlanner, final_task)
+        robots.planning(is_distributed=True)
                                     
     raw_input("Press enter to exit...")

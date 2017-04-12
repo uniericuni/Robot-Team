@@ -82,7 +82,6 @@ def rotationPlanner(query, env, robot, ee):
                     value[dof] = i*PI/30
                 else:
                     value[dof] = i*PI/180
-                    print value[dof]
                 robot.SetActiveDOFValues(value)
                 
                 # check self collision
@@ -90,7 +89,7 @@ def rotationPlanner(query, env, robot, ee):
                     continue
 
                 # iteratively check for best
-                pos = np.array(robot.GetLinks()[dof+1].GetTransform())[0:2,3]
+                pos = np.array(robot.GetLink(ee).GetTransform())[0:2,3]
                 if np.linalg.norm(pos-query) < min_val:
                     min_val = np.linalg.norm(pos-query)
                     min_id = i
@@ -116,6 +115,7 @@ def rotationPlacer(query, env, robot, ee):
     with env:
 
         dof = 0
+        robot.SetActiveDOFValues([0]*robot.GetActiveDOF())
         while dof < robot.GetActiveDOF():
 
             # iteratively check for placement
@@ -127,23 +127,22 @@ def rotationPlacer(query, env, robot, ee):
                     value[dof] += PI/30
                 else:
                     value[dof] += PI/180
-                    print value[dof]
                 robot.SetActiveDOFValues(value)
                 
                 # check self collision
                 if robot.CheckSelfCollision():
                     continue
 
-                # iteratively check for best
+                # placement check
                 pos = np.array(robot.GetLinks()[dof+1].GetTransform())[0:2,3]
-                if pos[0]<X_MAX1 and pos[0]>X_MIN1 and pos[1]<Y_MAX and pos[1]>Y_MIN:
+                if pos[0]<X_MAX2 and pos[0]>X_MIN2 and pos[1]<Y_MAX and pos[1]>Y_MIN:
                     isPlaced = True
                     break
 
-        if Placed = True:
-            dof += 1
-        else:
-            dof -= 1
+            if isPlaced == True:
+                dof += 1
+            else:
+                dof -= 1
 
     # return trajectory, if fail, run again
     return robot.GetActiveDOFValues()
