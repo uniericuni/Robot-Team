@@ -1,3 +1,7 @@
+# Conceptual workflow: query -> planning -> release resource -> visualize
+# planning for transition: planner -> release -> lock/unlock
+# planning for section: planner -> release
+
 import xml.etree.ElementTree as ET
 import numpy as np
 import openravepy
@@ -19,7 +23,7 @@ class HomogeneousRobotTeam:
                        joint_type='chain',      # joint type: chain, central distributed, network <--- should change a name, lol
                        configs=None):           # assigned initial configuration for each bot 
 
-        # define system parameters
+        # Define system parameters
         np.random.seed()
         self.env = env
         self.instance_xml = instance_xml
@@ -111,9 +115,6 @@ class HomogeneousRobotTeam:
             body2 = ET.Element('Body'); body2.text = '%d_Base'%(i);
             offset = ET.Element('offsetfrom'); offset.text = '%d_Base'%(i-1);
             axis = ET.Element('axis'); axis.text = '0 0 1'
-            #anchor = ET.Element('Anchor'); anchor.text = ' '.join([str(v) for v in anchor_unit_vec])
-            #anchor = ET.Element('Anchor'); anchor.text = ' '.join([str(v) for v in anchor_unit_vec])
-            #joint.append(anchor)
             joint.append(body1)
             joint.append(body2)
             joint.append(offset)
@@ -124,10 +125,8 @@ class HomogeneousRobotTeam:
         manipulator = ET.Element('Manipulator', {'name': 'chain'})
         base = ET.Element('base'); base.text = '0_Base'
         eff = ET.Element('effector'); eff.text = '%d_Base'%(self.instance_number-1)
-        #joints = ET.Element('joints'); joints.text = '0-to-1 1-to-2';
         manipulator.append(base)
         manipulator.append(eff)
-        #manipulator.append(joints)
         wrapper_joint.append(wrapper_kinbody)
         wrapper_joint.append(manipulator)
         root.append(wrapper_joint)
@@ -220,7 +219,7 @@ class HomogeneousRobotTeam:
         
         return rtn
 
-    # setup planner
+    # Setup planner
     def setPlanner(self, planner, query, mode=0):
         self.query = query
         self.planner = planner
@@ -293,16 +292,25 @@ class HomogeneousRobotTeam:
                 self.trajectory[i].append(list(query))
                 
 
-    # planning
+    # ====================================================================================
+    # release(self, inverse=False):
+    #   Release trajectory buffer to visualize on GUI.
+    # Inputs:
+    #   inverse: Bool, if the display should start from tail.
+    # ====================================================================================
     def release(self, inverse=False):
        
         if self.status==UNLOCK:
+
+            # Starting from head
             if not inverse:
                 for i in range(0,self.instance_number)[::-1]:
                     while len(self.trajectory[i])>0:
                         pos = self.trajectory[i].pop(0)
                         self.robots[i].SetActiveDOFValues(pos)
                         time.sleep(TIME_DELTA)
+
+            # Starting from tail
             else:
                 for i in range(self.instance_number):
                     while len(self.trajectory[i])>0:
@@ -311,6 +319,8 @@ class HomogeneousRobotTeam:
                         time.sleep(TIME_DELTA)
 
         else:
+
+            # Move simultaneously
             while len(self.trajectory[0])>0:
                 pos = self.trajectory[0].pop(0)
                 self.lock_robot.SetActiveDOFValues(pos)

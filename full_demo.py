@@ -133,11 +133,10 @@ if __name__ == "__main__":
         # use UNLOCK planner to realize the path
         if mode0 == 0:
             with env:
-                robots.unlock()
                 robots.setPlanner(astarPlanner, query)
                 robots.planning()
-            raw_input("Press enter to exit...")
             robots.release()
+            raw_input("Press enter to exit...")
 
         # use LOCK_BASE0 or N planner to realize the bridge
         elif mode1 == 1 or mode1 == 2:

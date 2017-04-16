@@ -1,3 +1,8 @@
+# ====================================================================================
+# Plannery.py
+#   The main purpose of this module is to wrap different planner models into single 
+#   functions.
+# ====================================================================================
 import numpy as np
 import openravepy
 import sys
@@ -5,6 +10,7 @@ import utility
 
 from HomogeneousRobotTeam import *
 from Graph import *
+from Sampler import *
 from config import *
 from planning import *
 
@@ -12,14 +18,36 @@ if not __openravepy_build_doc__:
     from openravepy import *
     from numpy import *
 
-# astar for 2D plannar trajectory
+# ====================================================================================
+# astarPlanner(query, env, robot):
+#   Astar for 2D.
+# Inputs:
+#   query: List or set of 1 or 2, (init and) goal configuration.
+#   env:   Openrave environment object.
+#   robot: Openrave robot object.
+# Outputs:
+#   rtn:   List of np.array, the trajectory of from init to goal.
+# ====================================================================================
 def astarPlanner(query, env, robot):
 
-    start = query[0]
-    goal = query[1]
-    distMethod = utility.eDist
-    expandMethod = utility.eightConnected
-    goalNode, explored, collided = astar(start, goal, distMethod, expandMethod, robot, env)
+    # Input format check
+    assert(evn!=None)
+    assert(robot!=None)
+
+    # Planner init
+    if len(query)==1:
+        init = robot.GetActiveDOFValues()
+        goal = query
+    else:
+        init = query[0]
+        goal = query[1]
+
+    # Planner
+    goalNode, explored, collided = astar(   init,                   # init config
+                                            goal,                   # goal config
+                                            utility.eDist,          # distance metric
+                                            utility.eightConnected, # neighbor expansion
+                                            robot, env)             # environment
     robot.SetActiveDOFValues(goalNode.pos)
 
     # Create trajectory
@@ -28,61 +56,48 @@ def astarPlanner(query, env, robot):
     while node!=None:
         rtn.append(np.array(node.pos))
         node = node.prev
-    rtn = rtn[::-1]
-    return rtn
-    '''
-    traj = RaveCreateTrajectory(env, '')
-    config = robot.GetActiveConfigurationSpecification()
-    config.AddDeltaTimeGroup()
-    traj.Init(config)
-    node = goalNode
-    while node!=None:
-        step = list(node.pos)+[TIME_DELTA]
-        traj.Insert(0, step)
-        node = node.prev
+    rtn.append(np.array(start))
+    return rtn[::-1]
 
-    # Init controller 
-    controller = robot.GetController()
-    controller.SetPath(traj)
-    '''
+# ====================================================================================
+# rotationPlanner(query, env, robot, ee):
+#   IK solver for 2D chain-bot.
+# Inputs:
+#   query: List or set of 1 or 2, (init and) goal configuration.
+#   env:   Openrave environment object.
+#   robot: Openrave robot object.
+#   ee:    String, name for end-effector link.
+# Outputs:
+#   rtn:   List of np.array, the trajectory of from init to goal.
+# ====================================================================================
+def rotationPlanner(query, env, robot, ee==None):
 
-# planner for 2D plannar trajectory
-def plannarPlanner(query, env, robot):
+    # Input format check
+    assert(evn!=None)
+    assert(robot!=None)
 
-    # generate the ik solver
-    robot.SetActiveDOFValues([1,2])
-    iktype = IkParameterization.Type.TranslationXY2D
-    ikmodel = databases.inversekinematics.InverseKinematicsModel( robot,
-                                                                  iktype=iktype )
-    if not ikmodel.load():
-        ikmodel.autogenerate()
+    # Planner init
+    if len(query)==1:
+        init = robot.GetActiveDOFValues()
+        goal = query
+    else:
+        init = query[0]
+        goal = query[1]
+    if len(goal)==3:
+        goal = goal[0:2]
+    if ee==None:
+        ee = robot.GetLinks()[-1]
 
-    # generate ik solution solution
+    # Planner
     with env:
-        while True:
-            ikparam = IkParameterization(query, iktype)
-            solutions = ikmodel.manip.FindIKSolutions( ikparam, IkFilterOptions.CheckEnvCollisions )
-            if solutions is not None and len(solutions)>0: break
-
-    # return trajectory
-    return solutions
-
-# homemade planner
-def rotationPlanner(query, env, robot, ee):
-
-    # pruning redundant dimension
-    origin = robot.GetActiveDOFValues()
-
-    if len(query)==3:
-        query = query[0:2]
-
-    with env:
+        
+        # Iterate over all dof
         for dof in range(robot.GetActiveDOF()):
 
             min_val = float('inf')
             min_id = 0
 
-            # iteratively check for best
+            # Exhaust to minimize cost
             for i in range(-30,31):
                 
                 value = robot.GetActiveDOFValues()
@@ -92,17 +107,17 @@ def rotationPlanner(query, env, robot, ee):
                     value[dof] = i*PI/180
                 robot.SetActiveDOFValues(value)
                 
-                # check self collision
+                # Check self collision
                 if robot.CheckSelfCollision():
                     continue
 
-                # iteratively check for best
+                # Check minimizer
                 pos = np.array(robot.GetLink(ee).GetTransform())[0:2,3]
-                if np.linalg.norm(pos-query) < min_val:
+                if np.linalg.norm(pos-goal) < min_val:
                     min_val = np.linalg.norm(pos-query)
                     min_id = i
             
-            # set dof value
+            # Set dof value
             value = robot.GetActiveDOFValues()
             if dof==0:
                 value[dof] = min_id*PI/30
@@ -111,60 +126,87 @@ def rotationPlanner(query, env, robot, ee):
             robot.SetActiveDOFValues(value)
 
     # return trajectory, if fail, run again
-    rtn = []
-    k = 30
-    step = (np.array(robot.GetActiveDOFValues()) - np.array(origin))/k
-    rtn = [origin + step*i for i in range(k+1)]
+    step = ( np.array(robot.GetActiveDOFValues()) - np.array(init) ) / ROT_RES
+    rtn = [init+step*i for i in range(ROT_RES+1)]
     return rtn
 
-# homemade planner
-def rotationPlacer(query, env, robot, ee):
+# ====================================================================================
+# rotationPlacer(query, env, robot, ee):
+#   IK solver for transition from 2D chain-bot to unlocked.
+# Inputs:
+#   query: List or set of 1 or 2, (init and) goal configuration.
+#   env:   Openrave environment object.
+#   robot: Openrave robot object.
+#   ee:    String, name for end-effector link.
+# Outputs:
+#   rtn:   List of np.array, the trajectory of from init to goal.
+# ====================================================================================
+def rotationPlacer(query, env, robot, ee=None):
 
-    # pruning redundant dimension
-    origin = robot.GetActiveDOFValues()
-    if len(query)==3:
-        query = query[0:2]
+    # Input format check
+    assert(evn!=None)
+    assert(robot!=None)
 
+    # Planner init
+    if len(query)==1:
+        init = robot.GetActiveDOFValues()
+        goal = query
+    else:
+        init = query[0]
+        goal = query[1]
+    if len(goal)==3:
+        goal = goal[0:2]
+    if ee==None:
+        ee = robot.GetLinks()[-1]
+
+    # Determine rotation direction
+    rot_dir = np.where( np.array(init)>0, 1, -1 )
+
+    # Planner
     with env:
 
         dof = 0
         robot.SetActiveDOFValues([0]*robot.GetActiveDOF())
+
+        # Iterate over all dof to check if placed
         while dof < robot.GetActiveDOF():
 
-            # iteratively check for placement
             isPlaced = False
+
+            # Exhaust to check placement
             for i in range(-30,31):
                 
                 value = robot.GetActiveDOFValues()
                 if dof==0:
-                    value[dof] += PI/30
+                    value[dof] += PI/30*rot_dir[i]
                 else:
-                    value[dof] += PI/180
+                    value[dof] += PI/180*rot_dir[i]
                 robot.SetActiveDOFValues(value)
                 
-                # check self collision
+                # Check self collision
                 if robot.CheckSelfCollision():
                     continue
 
-                # placement check
+                # Check placement
                 pos = np.array(robot.GetLinks()[dof+1].GetTransform())[0:2,3]
-                if pos[0]<X_MAX2 and pos[0]>X_MIN2 and pos[1]<Y_MAX and pos[1]>Y_MIN:
+                if not isRejected(pos, mode==UNLOCK):
                     isPlaced = True
                     break
 
+            # If placed, next adjust next dof; if not, adjust pervious
             if isPlaced == True:
                 dof += 1
             else:
                 dof -= 1
 
-    # return trajectory, if fail, run again
-    rtn = []
-    k = 30
-    step = (np.array(robot.GetActiveDOFValues()) - np.array(origin))/k
-    rtn = [origin + step*i for i in range(k+1)]
+    # Create trajectory
+    step = ( np.array(robot.GetActiveDOFValues()) - np.array(init) ) / ROT_RES
+    rtn = [init+step*i for i in range(ROT_RES+1)]
     return rtn
 
-# multi-modal planner
+# ====================================================================================
+# multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
+# ====================================================================================
 def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
 
     # initiate adjacent matrix to store connections and list of graph to store connection in one mode
@@ -216,3 +258,35 @@ def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
 
     return rtn_tbl,maps[0].init_node,maps[0].goal_node
 
+# ====================================================================================
+# multiModalPlanner(query, robot_team, modal_samplers, trans_samplers)
+# ====================================================================================
+
+# =========================================================================
+# Under Construction ...
+# =========================================================================
+
+# planner for 2D plannar trajectory
+def plannarPlanner(query, env, robot):
+
+    # generate the ik solver
+    robot.SetActiveDOFValues([1,2])
+    iktype = IkParameterization.Type.TranslationXY2D
+    ikmodel = databases.inversekinematics.InverseKinematicsModel( robot,
+                                                                  iktype=iktype )
+    if not ikmodel.load():
+        ikmodel.autogenerate()
+
+    # generate ik solution solution
+    with env:
+        while True:
+            ikparam = IkParameterization(query, iktype)
+            solutions = ikmodel.manip.FindIKSolutions( ikparam, IkFilterOptions.CheckEnvCollisions )
+            if solutions is not None and len(solutions)>0: break
+
+    # return trajectory
+    return solutions
+
+# =========================================================================
+# Under Construction ...
+# =========================================================================

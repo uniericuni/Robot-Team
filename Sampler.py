@@ -64,7 +64,7 @@ class Sampler:
             # note: even 2 within a circle, it is not gauranteed that it can be solve by ik solver, such as self collision, kinematic constraints, etc
             else:
                 rtn_pair = [self.easySample(), self.easySample()]
-                while np.linalg.norm(rtn_pair[0]-rtn_pair[1]) > self.pair_range :
+                while isRejected(rtn_pair[0], rtn_pair[1], mode=LOCK0):
                     rtn_pair = [self.easySample(), self.easySample()]
                     # print rtn_pair, np.linalg.norm(rtn_pair[0]-rtn_pair[1]), self.pair_range
                 return rtn_pair
@@ -82,3 +82,22 @@ class Sampler:
     # return transition pair
     def getTransPair(self):
         return self.pair
+
+# ====================================================================================
+# isRejected(pos, pos_ref=None, mode=UNLOCK):
+#   Reject samples that didn't meet the constraints.
+# Inputs:
+#   pos:     np.array, sample configuration.
+#   pos_ref: np.array, metric reference for the sample configuration.
+#   mode:    MACRO, mode for constraints.
+# ====================================================================================
+def isRejected(pos, pos_ref=None, mode=UNLOCK):
+
+    # unlocked mode
+    if mode==UNLOCK:
+        return  not ((pos[0]<X_MAX1 and pos[0]>X_MIN1 and pos[1]<Y_MAX and pos[1]>Y_MIN) or 
+                     (pos[0]<X_MAX2 and pos[0]>X_MIN2 and pos[1]<Y_MAX and pos[1]>Y_MIN))
+
+    # locked mode
+    elif mode==LOCK0 or mode==LOCKN:
+        return  np.linalg.norm(pos-pos_ref) > self.pair_range
