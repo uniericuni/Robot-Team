@@ -71,7 +71,7 @@ raw_input("Press enter to exit...")
 # PHASE II: cost evaluation and heuristic planning
 # =================================================
 
-# plan for each transition
+# Plan for transition and section
 for i in range(len(anchors)-1):
     
     # Get init,goal configuratino pair
@@ -101,12 +101,15 @@ for i in range(len(anchors)-1):
     # Planner for transition
     else:
         with env:
-            if mode1==UNLOCK:
-                robots.unlock()
-            elif mode0==LOCK0:
-                robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
-            elif mode0==LOCKN:
-                robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN )
+            if mode1==UNLOCK:                                   # from lock to unlock
+                robots.unlock(enforced=True)
+            else:
+                if mode0==UNLOCK:                               # from unlock to lock
+                    robots.lock(enforced=True)
+                elif mode0==LOCK0:                              # from lock to lock
+                    robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
+                elif mode0==LOCKN:                              # from lock to lock
+                    robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN )
             robots.planning()
         robots.release()
         raw_input("Press enter to exit...")

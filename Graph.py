@@ -1,3 +1,7 @@
+# ====================================================================================
+# Graph.py
+#   Graph module describes node, connectitivity of the nodes in macro-planner.
+# ====================================================================================
 import numpy as np
 import openravepy
 
@@ -10,7 +14,9 @@ if not __openravepy_build_doc__:
 # bounding ball radius < range of cliff
 BOUNDARY = CLIFF
 
-# node in graph
+# ====================================================================================
+# Node:
+# ====================================================================================
 class Node:
     
     def __init__(self, config, mode, transition_pair=None):
@@ -25,7 +31,9 @@ class Node:
     def extendNeighbors(self, node):
         self.neighbors.append(node)
 
-# PRM graph
+# ====================================================================================
+# PRM Graph
+# ====================================================================================
 class Graph:
 
     def __init__(self):
@@ -64,7 +72,9 @@ class Graph:
         # append node to graph
         self.nodes.append(node)
 
-# instantiate transition node pair
+# ====================================================================================
+# nodePair( config0, config1, mode0, mode1 ):
+# ====================================================================================
 def nodePair( config0, config1, mode0, mode1 ):
     node0 = Node(config0, mode0)
     node1 = Node(config1, mode1)
@@ -74,7 +84,11 @@ def nodePair( config0, config1, mode0, mode1 ):
     node1.extendNeighbors(node0)
     return node0,node1
 
-# Test the connectivity to the goal_node
+# ====================================================================================
+# isConnect(node, goal_node, visited):
+#   Test the connectivity to the goal_node
+# ====================================================================================
+# TODO: make it non-recursive
 def isConnect(node, goal_node, visited):
 
     # goal test
@@ -92,5 +106,4 @@ def isConnect(node, goal_node, visited):
         rtn = isConnect(neighbor, goal_node, visited=visited)
         if rtn:
             break 
-
     return rtn
