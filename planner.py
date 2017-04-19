@@ -216,6 +216,7 @@ def effMultiModalPlanner(   query,
     map_unlock = Graph(query, 0)
     map_lock = Graph(query, 1)
     rtn = []
+    anchors = {}
 
     # Add anchors for several times
     for i in range(MM_MAX_ITER):
@@ -241,14 +242,14 @@ def effMultiModalPlanner(   query,
                 # Add nodes to graphs
                 if mode0==UNLOCK:
                     map_unlock.addNode(node0, pr=pr0)
-                    map_lock.addNode(node1, pr=pr1, anchor=True)
+                    map_lock.addNode(node1, pr=pr1, anchor=True, anchors=anchors)
                 else:
                     map_unlock.addNode(node1, pr=pr0)
-                    map_lock.addNode(node0, pr=pr1, anchor=True)
+                    map_lock.addNode(node0, pr=pr1, anchor=True, anchors=anchors)
 
         # Test connectivity of anchors
         print isConnect(map_unlock.init_node, map_unlock.goal_node, rtn_tbl)
-        graphPruning(map_unlock.init_node, map_unlock.goal_node, {})
+        graphPruning(map_unlock.init_node, map_unlock.goal_node, {}, anchors)
 
     return map_unlock.init_node,map_unlock.goal_node
 

@@ -58,7 +58,7 @@ class Graph:
         self.addNode(Node(config, self.mode), neighbors)
 
     # add node into graph and connect with other nodes
-    def addNode(self, node, neighbors='ball', pr=None, anchor=False):
+    def addNode(self, node, neighbors='ball', pr=None, anchor=False, anchors=None):
 
         # extend all neighbors nodes within a boundary ball
         # note: the boundary is set to l2-norm while the real case is l1-norm in supsapce
@@ -69,7 +69,7 @@ class Graph:
             for v in self.nodes:
                 isAnchor = not (anchor and not Sampler.isRejected((node.getVal()+v.getVal())/2))  # anchor tes
                 if (np.linalg.norm(v.getVal()-node.getVal()) < pr) and isAnchor:
-                    if anchor: print node.getVal(), v.getVal()
+                    if anchor: anchors[node]=True; anchors[v]=True; print node.getVal(), v.getVal()
                     node.extendNeighbors(v)
                     v.extendNeighbors(node)
 
@@ -120,7 +120,7 @@ def isConnect(node, goal_node, visited):
 
 # Graph pruning
 
-def graphPruning(node, goal_node, visited):
+def graphPruning(node, goal_node, visited, anchors):
 
     # Expand neighbors
     visited[node]=True
@@ -142,13 +142,13 @@ def graphPruning(node, goal_node, visited):
             continue
             
         # Test if anchors
-        if len(neighbor.trans_pair.neighbors)>1:
+        if neighbor in anchors:
             new_neighbors.append(neighbor)
             continue
 
         # Test if self anchor
         if neighbor.trans_pair==node:
-            if len(neighbor.neighbors)>1:
+            if node in anchors:
                 new_neighbors.append(neighbor)
             continue
 
@@ -162,4 +162,4 @@ def graphPruning(node, goal_node, visited):
         print node.getVal(), neighbor.getVal()
         if neighbor.trans_pair==node:
             continue
-        graphPruning(neighbor, goal_node, visited)
+        graphPruning(neighbor, goal_node, visited, anchors)
