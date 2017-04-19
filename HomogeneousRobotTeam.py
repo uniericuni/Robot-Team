@@ -70,14 +70,14 @@ class HomogeneousRobotTeam:
             self.env.Remove(self.lock_robot)
 
     # Declare lock robot model
-    def declareLockRobot(self):
+    def declareLockRobot(self, reverse=False):
 
         # Xml element tree initialization
         tree = ET.parse(self.lock_template_xml)
         root = tree.getroot()
 
         # decide lock base
-        if lock_mode == LOCK0:
+        if reverse:
             iterator = self.robots[:]
         else:
             iterator = self.robots[::-1]
@@ -155,13 +155,14 @@ class HomogeneousRobotTeam:
         self.lock_robot.SetActiveManipulator('chain')
 
     # Transition from lock/unlock to lock
-    def lock(self, lock_mode,                   # LOCK BASE 0 or BASE N
-                   enforced=True,               # enforce to assemble
+    def lock(self, enforced=True,               # enforce to assemble
                    print_out=False):            # print out generated xml tree
 
         # Unlock the robot first if the robot is locked
-        if self.status == LOCK0 or self.status == LOCKN:
+        reverse = False
+        if self.status == LOCK0:
             self.unlock(enforced=False)
+            reverse = True
 
         # Enforce robots to assemble
         if enforced:
@@ -169,8 +170,8 @@ class HomogeneousRobotTeam:
             self.release()
 
         # Declare lock robot model
-        self.status = lock_mode
-        declareLockRobot()
+        self.status = LOCK0
+        declareLockRobot(reverse=reverse)
 
         # system log
         self.log.msg('Sys', 'robot team modeled')

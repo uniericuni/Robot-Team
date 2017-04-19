@@ -127,7 +127,7 @@ if __name__ == "__main__":
                     robots.setPlanner(astarPlanner, query)
                 elif mode0==LOCK0:
                     robots.setPlanner(rotationPlanner, query)
-                    robots.lock( LOCK_ROBOT_TEMPLATE, reverse=True )
+                    robots.lock( LOCK_ROBOT_TEMPLATE, reverse)
                 else:
                     pass
                 robots.planning()
@@ -141,7 +141,6 @@ if __name__ == "__main__":
                     robots.setPlanner(rotationPlacer, query)
                     robots.planning()
                 robots.release()
-                robots.planning()
                 robots.unlock(enforced=True)
             else:
                 robots.lock(enforced=True)                      # from unlock to lock
