@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import time
 import openravepy
+import heapq as hq
 
 from HomogeneousRobotTeam import *
 from config import *
@@ -62,7 +63,8 @@ if __name__ == "__main__":
         pair1 = (UNLOCK,LOCKN)
         sampler01 = Sampler(mode=3, is_trans=True, pair=pair0, pair_range=pr)
         sampler02 = Sampler(mode=4, is_trans=True, pair=pair1, pair_range=pr)
-        trans_samplers = [sampler01, sampler02]
+        trans_samplers = [sampler01]
+        #trans_samplers = [sampler01, sampler02]
 
         # multiModalPlanning
         init_node, goal_node = effMultiModalPlanner(   query,
@@ -71,50 +73,78 @@ if __name__ == "__main__":
                                                        CLIFF,
                                                        pr)
 
-        frontier = [init_node]
-        while len(frontier)>0:
-            node = frontier.pop()
-            l = [n.getVal() for n in node.neighbors]
-            print node.getVal(), node.mode, l
-            for n in node.neighbors:
-                frontier.append(n)
-        '''
-        # demo samples
+        # heuristic search
+        frontier = [(0, init_node)]
+        parent = {init_node:(0,None)}
+        while True:
+            cost,node = hq.heappop(frontier)
+            if node==goal_node:
+                break
+
+            for neighbor in node.neighbors:
+                parent[neighbor] = (cost,node)
+                if node.mode==UNLOCK and neighbor.mode==UNLOCK:
+                    total_cost = cost+np.linalg.norm(neighbor.getVal()-node.getVal())
+                elif (node.mode==LOCK0 or node.mode==LOCKN) and (neighbor.mode==LOCK0 or neighbor.mode==LOCKN):
+                    total_cost = cost+np.linalg.norm(neighbor.getVal()-node.getVal())
+                else:
+                    total_cost = 4+cost
+                hq.heappush( frontier,
+                             (total_cost, neighbor) )
+        
+        # display search result
         print 'samples ...'
         print '-'*20
-        node = goal_node
+        anchors = []
         while node!=None:
-            print node.getVal()
-        node = rtn_tbl[node]
-
-        # collect transition pair
-        node = goal_node
-        anchors = [goal_node]
-        while node!=None:
-      
-            # append init node
-            if rtn_tbl[node] == None:
-                anchors.append(node)
-            
-            # append anchors with transition configs
-            if node.trans_pair != None:
-                
-                # heuristicly pruning transition to single mode config
-                # TODO: use joint state instead of base-represented to prune
-                # TODO: explaining transition pruning
-                # TODO: not pruning mode-0-to-1 or 2
-                if node.trans_pair.getVal()[0]*node.getVal()[0] < 0:
-                    anchors.append(node)
-                    anchors.append(node.trans_pair)
-                    node = node.trans_pair
-            node = rtn_tbl[node]
-     
-        # demo anchors
+            print "config: ", node.getVal(), " | mode: ", node.mode, " | cost: ", cost
+            anchors.append(node)
+            cost,node = parent[node]
         anchors = anchors[::-1]
-        print '\nanchors ...'
+                    
+    # =================================================
+    # PHASE II: cost evaluation and heuristic planning
+    # =================================================
+
+    # Plan for transition and section
+    for i in range(len(anchors)-1):
+    
+        # Get init,goal configuratino pair
+        init_anchor,goal_anchor = anchors[i:i+2]
+        query = [init_anchor.getVal(), goal_anchor.getVal()]
+        mode0 = init_anchor.mode
+        mode1 = goal_anchor.mode
+        print '\nfrom mode%d to mode%d'%(mode0,mode1), '\nquery: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
         print '-'*20
-        for v in anchors:
-            print v.getVal().tolist()
-        '''
-        
+
+        query_pair = query
+        query = query[1]
+ 
+        # Planner for section
+        if mode0==mode1:
+            with env:
+                if mode0==UNLOCK:
+                    robots.setPlanner(astarPlanner, query)
+                elif mode0==LOCK0:
+                    robots.setPlanner(rotationPlanner, query)
+                    robots.lock( LOCK_ROBOT_TEMPLATE, reverse=True )
+                else:
+                    pass
+                robots.planning()
+            robots.release()
+            raw_input("Press enter to exit...")
+ 
+        # Planner for transition
+        else:
+            if mode1==UNLOCK:                                   # from lock to unlock
+                with env:
+                    robots.setPlanner(rotationPlacer, query)
+                    robots.planning()
+                robots.release()
+                robots.planning()
+                robots.unlock(enforced=True)
+            else:
+                robots.lock(enforced=True)                      # from unlock to lock
+            raw_input("Press enter to exit...")
+
     raw_input("Press enter to exit...")
