@@ -56,7 +56,7 @@ if __name__ == "__main__":
     with env:
     
         # instantitate multi-modal sampler
-        query = [np.array([-5, 0, 20.3]), np.array([5, 0, 20.3])]
+        query = [np.array([-5, 0, 20.3]), np.array(final_task[0])]
         n = float(robots.instance_number-1)
         pr = (float(RADIUS*2)*(n-2))/100
         pair0 = (UNLOCK,LOCK0)
@@ -111,36 +111,35 @@ if __name__ == "__main__":
     
         # Get init,goal configuratino pair
         init_anchor,goal_anchor = anchors[i:i+2]
-        query = [init_anchor.getVal(), goal_anchor.getVal()]
+        query = [goal_anchor.getVal()]
         mode0 = init_anchor.mode
         mode1 = goal_anchor.mode
         print '\nfrom mode%d to mode%d'%(mode0,mode1), '\nquery: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
         print '-'*20
 
-        query_pair = query
-        query = query[1]
- 
         # Planner for section
         if mode0==mode1:
-            with env:
-                if mode0==UNLOCK:
+            if mode0==UNLOCK:
+                with env:
                     robots.setPlanner(astarPlanner, query)
-                elif mode0==LOCK0:
+                    robots.planning()
+                robots.release()
+            elif mode0==LOCK0:
+                with env:
                     robots.setPlanner(rotationPlanner, query)
-                    robots.lock( LOCK_ROBOT_TEMPLATE, reverse)
-                else:
-                    pass
-                robots.planning()
-            robots.release()
+                    robots.planning()
+                robots.release()
+                robots.lock( enforced=False )
             raw_input("Press enter to exit...")
  
         # Planner for transition
         else:
             if mode1==UNLOCK:                                   # from lock to unlock
                 with env:
-                    robots.setPlanner(rotationPlacer, query)
+                    robots.setPlanner(rotationPlacer, [])
                     robots.planning()
                 robots.release()
+                raw_input("Press enter to exit...")
                 robots.unlock(enforced=True)
             else:
                 robots.lock(enforced=True)                      # from unlock to lock

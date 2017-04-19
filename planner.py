@@ -31,7 +31,7 @@ if not __openravepy_build_doc__:
 def astarPlanner(query, env, robot):
 
     # Input format check
-    assert(evn!=None)
+    assert(env!=None)
     assert(robot!=None)
 
     # Planner init
@@ -56,7 +56,7 @@ def astarPlanner(query, env, robot):
     while node!=None:
         rtn.append(np.array(node.pos))
         node = node.prev
-    rtn.append(np.array(start))
+    rtn.append(np.array(init))
     return rtn[::-1]
 
 # ====================================================================================
@@ -73,13 +73,13 @@ def astarPlanner(query, env, robot):
 def rotationPlanner(query, env, robot, ee=None):
 
     # Input format check
-    assert(evn!=None)
+    assert(env!=None)
     assert(robot!=None)
 
     # Planner init
     if len(query)==1:
         init = robot.GetActiveDOFValues()
-        goal = query
+        goal = query[0]
     else:
         init = query[0]
         goal = query[1]
@@ -114,7 +114,7 @@ def rotationPlanner(query, env, robot, ee=None):
                 # Check minimizer
                 pos = np.array(robot.GetLink(ee).GetTransform())[0:2,3]
                 if np.linalg.norm(pos-goal) < min_val:
-                    min_val = np.linalg.norm(pos-query)
+                    min_val = np.linalg.norm(pos-goal)
                     min_id = i
             
             # Set dof value
@@ -123,6 +123,7 @@ def rotationPlanner(query, env, robot, ee=None):
                 value[dof] = min_id*PI/30
             else:
                 value[dof] = min_id*PI/180
+
             robot.SetActiveDOFValues(value)
 
     # return trajectory, if fail, run again
@@ -144,18 +145,11 @@ def rotationPlanner(query, env, robot, ee=None):
 def rotationPlacer(query, env, robot, ee=None):
 
     # Input format check
-    assert(evn!=None)
+    assert(env!=None)
     assert(robot!=None)
 
     # Planner init
-    if len(query)==1:
-        init = robot.GetActiveDOFValues()
-        goal = query
-    else:
-        init = query[0]
-        goal = query[1]
-    if len(goal)==3:
-        goal = goal[0:2]
+    init = robot.GetActiveDOFValues()
     if ee==None:
         ee = robot.GetLinks()[-1]
 
@@ -174,13 +168,13 @@ def rotationPlacer(query, env, robot, ee=None):
             isPlaced = False
 
             # Exhaust to check placement
-            for i in range(-30,31):
+            for i in [0]+range(-30,31):
                 
                 value = robot.GetActiveDOFValues()
                 if dof==0:
-                    value[dof] += PI/30*rot_dir[i]
+                    value[dof] += PI/30*rot_dir[dof]
                 else:
-                    value[dof] += PI/180*rot_dir[i]
+                    value[dof] += PI/180*rot_dir[dof]
                 robot.SetActiveDOFValues(value)
                 
                 # Check self collision
@@ -189,7 +183,7 @@ def rotationPlacer(query, env, robot, ee=None):
 
                 # Check placement
                 pos = np.array(robot.GetLinks()[dof+1].GetTransform())[0:2,3]
-                if not isRejected(pos, mode==UNLOCK):
+                if not isRejected(pos, mode=UNLOCK):
                     isPlaced = True
                     break
 
@@ -248,7 +242,7 @@ def effMultiModalPlanner(   query,
                     map_lock.addNode(node0, pr=pr1, anchor=True, anchors=anchors)
 
         # Test connectivity of anchors
-        print isConnect(map_unlock.init_node, map_unlock.goal_node, rtn_tbl)
+        isConnected = isConnect(map_unlock.init_node, map_unlock.goal_node, rtn_tbl)
         graphPruning([map_unlock.init_node], map_unlock.goal_node, {map_unlock.init_node:True}, anchors)
 
     return map_unlock.init_node,map_unlock.goal_node

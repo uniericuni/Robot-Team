@@ -77,7 +77,7 @@ class HomogeneousRobotTeam:
         root = tree.getroot()
 
         # decide lock base
-        if reverse:
+        if not reverse:
             iterator = self.robots[:]
         else:
             iterator = self.robots[::-1]
@@ -136,8 +136,8 @@ class HomogeneousRobotTeam:
         
         # Write the model to xml
         tree.write(self.lock_xml)
-        if print_out:
-            ET.dump(root)
+        #if print_out:
+        #    ET.dump(root)
      
         # Return lockded system
         self.lock_robot = self.env.ReadRobotURI(self.lock_xml)
@@ -166,12 +166,13 @@ class HomogeneousRobotTeam:
 
         # Enforce robots to assemble
         if enforced:
-            self.enforce()
+            with self.env:
+                self.enforce()
             self.release()
 
         # Declare lock robot model
         self.status = LOCK0
-        declareLockRobot(reverse=reverse)
+        self.declareLockRobot(reverse=reverse)
 
         # system log
         self.log.msg('Sys', 'robot team modeled')
@@ -185,17 +186,18 @@ class HomogeneousRobotTeam:
         if self.status == UNLOCK:
             return 
 
-        # Enforce robots to dessemble
-        if enforced:
-            self.enforce(away=True)
-            self.release()
-
         # If already unlock, return
         self.status = UNLOCK
         self.robots = []
         links =  self.lock_robot.GetLinks()
         configs = [link.GetTransform() for link in links]
-        declareUnlockRobot(self, configs=configs)
+        self.declareUnlockRobot(configs=configs)
+
+        # Enforce robots to dessemble
+        if enforced:
+            with self.env:
+                self.enforce(away=True)
+            self.release()
 
         # system log
         self.log.msg('Sys', 'robot instance modeled')
@@ -214,12 +216,14 @@ class HomogeneousRobotTeam:
         prev_robot = self.robots[0]
         for i,robot in enumerate(self.robots[1:]):
             rtn = self.moveUntil(prev_robot, robot, radius, away=away)
-            self.trajectory[i].extend(rtn)
+            if i+1 not in self.trajectory:
+                self.trajectory[i+1] = []
+            self.trajectory[i+1].extend(rtn)
             prev_robot = robot
 
         # Recover the configuration before planning
         for i,robot in enumerate(self.robots[1:]):
-            robot.SetActiveDOFValues(self.trajectory[i][0])
+            robot.SetActiveDOFValues(self.trajectory[i+1][0])
       
     # enforce one kinbody move towards to another as near as possible
     def moveUntil(self, obj1,                   # target kinbody
@@ -279,11 +283,9 @@ class HomogeneousRobotTeam:
                                 '%d_Base'%(self.instance_number-1) )
             self.log.msg('Sys', 'path found for ' + ' '.join([str(s) for s in self.query]))
             self.trajectory[0] = rtn
-            self.log.msg('Error', 'planner function and arguments not match')
-            exit()
 
             # Recover the configuration before planning
-            self.lock_robot.setActiveDOFValues(self.trajectory[0][0])
+            self.lock_robot.SetActiveDOFValues(self.trajectory[0][0])
 
         # Plan for unlocked robot
         else:
@@ -294,24 +296,27 @@ class HomogeneousRobotTeam:
                 origin.append(robot.GetActiveDOFValues())
 
             # Extend query
-            if len(query)==1:
-                prev_pos = query
+            if len(self.query)==1:
+                prev_pos = self.query[0]
                 self.robots[0].SetActiveDOFValues(prev_pos)
-                query = []
+                query = [prev_pos]
                 for i in range(1,self.instance_number):
                     pos = np.array(self.robots[i].GetActiveDOFValues())
                     while True:
-                        r = (pos-prev_pos) * (float(RADIUS)/100)*4 * np.random.random() / np.linalg.norm(pos-query)
+                        r = (pos-prev_pos) * (float(RADIUS)/100)*4 * np.random.random() / np.linalg.norm(pos-prev_pos)
                         pos_ = prev_pos + r
                         self.robots[i].SetActiveDOFValues(pos_)
-                        if not isRejected(pos_) and not self.env.CheckCollision(self.robots[i]):
+                        if (not isRejected(pos_)) and (not self.env.CheckCollision(self.robots[i])):
                             break
                     query.append(pos_)
-                    robot[i].SetActiveDOFValues(pos_)
+                    self.robots[i].SetActiveDOFValues(pos_)
+                    prev_pos = pos_
+                    self.log.msg('Sys', 'robot%d target position determined'%i)
+                self.query = query
 
             # Recover the configuration
             for i,robot in enumerate(self.robots):
-                robot.SetActiveDOFValues(self.origin[i])
+                robot.SetActiveDOFValues(origin[i])
                 
             # TODO: decide leading head
             #for i in range(0,self.instance_number)[::-1]:
@@ -340,7 +345,7 @@ class HomogeneousRobotTeam:
         if self.status==UNLOCK:
 
             # Starting from head
-            if not inverse:
+            if inverse:
                 for i in range(0,self.instance_number)[::-1]:
                     while len(self.trajectory[i])>0:
                         pos = self.trajectory[i].pop(0)
@@ -349,7 +354,7 @@ class HomogeneousRobotTeam:
 
             # Starting from tail
             else:
-                for i in range(self.instance_number):
+                for i in self.trajectory:
                     while len(self.trajectory[i])>0:
                         pos = self.trajectory[i].pop(0)
                         self.robots[i].SetActiveDOFValues(pos)
