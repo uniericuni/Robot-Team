@@ -5,6 +5,7 @@
 import numpy as np
 import openravepy
 import Sampler
+import heapq as hq
 
 from config import *
 
@@ -69,7 +70,9 @@ class Graph:
             for v in self.nodes:
                 isAnchor = not (anchor and not Sampler.isRejected((node.getVal()+v.getVal())/2))  # anchor tes
                 if (np.linalg.norm(v.getVal()-node.getVal()) < pr) and isAnchor:
-                    if anchor: anchors[node]=True; anchors[v]=True; print node.getVal(), v.getVal()
+                    if anchor:
+                        anchors[node]=True; anchors[v]=True;
+                        anchors[node.trans_pair]=True; anchors[v.trans_pair]=True;
                     node.extendNeighbors(v)
                     v.extendNeighbors(node)
 
@@ -120,10 +123,13 @@ def isConnect(node, goal_node, visited):
 
 # Graph pruning
 
-def graphPruning(node, goal_node, visited, anchors):
+def graphPruning(nodes, goal_node, visited, anchors):
+
+    if len(nodes)==0:
+        return
 
     # Expand neighbors
-    visited[node]=True
+    node = nodes.pop(0)
     new_neighbors = []
     local_visited = {node:True}
     while len(node.neighbors)!=0:
@@ -146,20 +152,17 @@ def graphPruning(node, goal_node, visited, anchors):
             new_neighbors.append(neighbor)
             continue
 
-        # Test if self anchor
-        if neighbor.trans_pair==node:
-            if node in anchors:
-                new_neighbors.append(neighbor)
-            continue
-
         # Add new candidate
         for v in neighbor.neighbors:
             node.neighbors.append(v)
 
-    # Pruning children nodes
+    # Hash child nodes
     node.neighbors = new_neighbors
     for neighbor in node.neighbors:
-        print node.getVal(), neighbor.getVal()
-        if neighbor.trans_pair==node:
-            continue
-        graphPruning(neighbor, goal_node, visited, anchors)
+        if neighbor==goal_node: continue
+        visited[neighbor]=True
+
+    # Pruning child nodes
+    for neighbor in node.neighbors:
+        nodes.append(neighbor)
+    graphPruning(nodes, goal_node, visited, anchors)

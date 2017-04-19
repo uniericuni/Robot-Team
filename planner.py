@@ -249,7 +249,7 @@ def effMultiModalPlanner(   query,
 
         # Test connectivity of anchors
         print isConnect(map_unlock.init_node, map_unlock.goal_node, rtn_tbl)
-        graphPruning(map_unlock.init_node, map_unlock.goal_node, {}, anchors)
+        graphPruning([map_unlock.init_node], map_unlock.goal_node, {map_unlock.init_node:True}, anchors)
 
     return map_unlock.init_node,map_unlock.goal_node
 

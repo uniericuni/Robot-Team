@@ -71,6 +71,13 @@ if __name__ == "__main__":
                                                        CLIFF,
                                                        pr)
 
+        frontier = [init_node]
+        while len(frontier)>0:
+            node = frontier.pop()
+            l = [n.getVal() for n in node.neighbors]
+            print node.getVal(), node.mode, l
+            for n in node.neighbors:
+                frontier.append(n)
         '''
         # demo samples
         print 'samples ...'
