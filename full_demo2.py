@@ -53,39 +53,38 @@ if __name__ == "__main__":
     # =================================================
 
     with env:
-        
-        # instantitate single mode sampler
-        # TODO: make mode binary so analytic
-        query = [np.array([-5, 0, 20.3]), np.array([5, 0, 20.3])]
-        sampler0 =  Sampler(mode=0)
-        sampler1 =  Sampler(mode=1)
-        sampler2 =  Sampler(mode=2)
-        modal_samplers = [sampler0, sampler1, sampler2]
- 
+    
         # instantitate multi-modal sampler
+        query = [np.array([-5, 0, 20.3]), np.array([5, 0, 20.3])]
         n = float(robots.instance_number-1)
         pr = (float(RADIUS*2)*(n-2))/100
-        sampler01 = Sampler(mode=3, is_trans=True, pair=(0,1), pair_range=pr)
-        sampler02 = Sampler(mode=4, is_trans=True, pair=(0,2), pair_range=pr)
-        sampler12 = Sampler(mode=5, is_trans=True, pair=(1,2), pair_range=pr)
-        trans_samplers = [sampler01, sampler02, sampler12]
- 
+        pair0 = (UNLOCK,LOCK0)
+        pair1 = (UNLOCK,LOCKN)
+        sampler01 = Sampler(mode=3, is_trans=True, pair=pair0, pair_range=pr)
+        sampler02 = Sampler(mode=4, is_trans=True, pair=pair1, pair_range=pr)
+        trans_samplers = [sampler01, sampler02]
+
         # multiModalPlanning
-        rtn_tbl, init_node, goal_node = multiModalPlanner(query, robots, modal_samplers, trans_samplers)
- 
+        init_node, goal_node = effMultiModalPlanner(   query,
+                                                       robots,
+                                                       trans_samplers,
+                                                       CLIFF,
+                                                       pr)
+
+        '''
         # demo samples
         print 'samples ...'
         print '-'*20
         node = goal_node
         while node!=None:
             print node.getVal()
-            node = rtn_tbl[node]
- 
+        node = rtn_tbl[node]
+
         # collect transition pair
         node = goal_node
         anchors = [goal_node]
         while node!=None:
- 
+      
             # append init node
             if rtn_tbl[node] == None:
                 anchors.append(node)
@@ -102,69 +101,13 @@ if __name__ == "__main__":
                     anchors.append(node.trans_pair)
                     node = node.trans_pair
             node = rtn_tbl[node]
- 
+     
         # demo anchors
         anchors = anchors[::-1]
         print '\nanchors ...'
         print '-'*20
         for v in anchors:
             print v.getVal().tolist()
+        '''
         
-    raw_input("Press enter to exit...")
-
-    # =================================================
-    # PHASE II: cost evaluation and heuristic planning
-    # =================================================
-
-    # plan for each transition
-    for i in range(len(anchors)-1):
-        
-        # get anchor pair as init and goal
-        init_anchor,goal_anchor = anchors[i:i+2]
-        query = [init_anchor.getVal(), goal_anchor.getVal()]
-        mode0 = init_anchor.mode
-        mode1 = goal_anchor.mode
-        print '\nfrom mode%d to mode%d'%(mode0,mode1), '\nquery: ', init_anchor.getVal().tolist(), goal_anchor.getVal().tolist()
-        print '-'*20
-
-
-        query_pair = query
-        query = query[1]
-
-        # use UNLOCK planner to realize the path
-        if mode0 == 0:
-            with env:
-                robots.setPlanner(astarPlanner, query)
-                robots.planning()
-            robots.release()
-            raw_input("Press enter to exit...")
-
-        # use LOCK_BASE0 or N planner to realize the bridge
-        elif mode1 == 1 or mode1 == 2:
-            robots.lock( LOCK_ROBOT_TEMPLATE, LOCK0 )
-            with env:
-                robots.setPlanner(rotationPlanner, query)
-            raw_input("Press enter to exit...")
-            with env:
-                robots.planning()
-            robots.release()
-
-        # use LOCK_BASE0 or N to get back to UNLOCK
-        elif mode1 == 0:
-            with env:
-                robots.lock( LOCK_ROBOT_TEMPLATE, LOCKN, enforced=False )
-                robots.setPlanner(rotationPlacer, query)
-                robots.planning()
-            raw_input("Press enter to exit...")
-            robots.release()
-
-        raw_input("Press enter to exit...")
-
-    # final distributed task
-    robots.unlock()
-    with env:
-        robots.setPlanner(astarPlanner, final_task)
-        robots.planning(is_distributed=True)
-    robots.release()
-                                    
     raw_input("Press enter to exit...")

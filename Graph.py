@@ -4,6 +4,7 @@
 # ====================================================================================
 import numpy as np
 import openravepy
+import Sampler
 
 from config import *
 
@@ -31,6 +32,10 @@ class Node:
     def extendNeighbors(self, node):
         self.neighbors.append(node)
 
+    def removeNeighbor(self, node):
+        self.neighbors.remove(node)
+        node.neighbors.remove(self)
+
 # ====================================================================================
 # PRM Graph
 # ====================================================================================
@@ -53,13 +58,18 @@ class Graph:
         self.addNode(Node(config, self.mode), neighbors)
 
     # add node into graph and connect with other nodes
-    def addNode(self, node, neighbors='ball'):
+    def addNode(self, node, neighbors='ball', pr=None, anchor=False):
 
         # extend all neighbors nodes within a boundary ball
         # note: the boundary is set to l2-norm while the real case is l1-norm in supsapce
+        if pr==None:
+            pr = BOUNDARY
+
         if neighbors == 'ball':
             for v in self.nodes:
-                if np.linalg.norm(v.getVal()-node.getVal()) < BOUNDARY:
+                isAnchor = not (anchor and not Sampler.isRejected((node.getVal()+v.getVal())/2))  # anchor tes
+                if (np.linalg.norm(v.getVal()-node.getVal()) < pr) and isAnchor:
+                    if anchor: print node.getVal(), v.getVal()
                     node.extendNeighbors(v)
                     v.extendNeighbors(node)
 
@@ -91,11 +101,11 @@ def nodePair( config0, config1, mode0, mode1 ):
 # TODO: make it non-recursive
 def isConnect(node, goal_node, visited):
 
-    # goal test
+    # Goal test
     if node==goal_node:
         return True
 
-    # expand neighbors 
+    # Expand neighbors 
     rtn = False
     func = lambda x:np.linalg.norm(node.getVal()-x.getVal())
     sorted_neighbors = sorted(node.neighbors, key=func)
@@ -107,3 +117,49 @@ def isConnect(node, goal_node, visited):
         if rtn:
             break 
     return rtn
+
+# Graph pruning
+
+def graphPruning(node, goal_node, visited):
+
+    # Expand neighbors
+    visited[node]=True
+    new_neighbors = []
+    local_visited = {node:True}
+    while len(node.neighbors)!=0:
+
+        # Remove from neighbors
+        neighbor = node.neighbors.pop()
+
+        # Test if visited
+        if (neighbor in visited) or (neighbor in local_visited):
+            continue
+        local_visited[neighbor]=True
+
+        # Test if goal
+        if neighbor==goal_node:
+            new_neighbors.append(neighbor)
+            continue
+            
+        # Test if anchors
+        if len(neighbor.trans_pair.neighbors)>1:
+            new_neighbors.append(neighbor)
+            continue
+
+        # Test if self anchor
+        if neighbor.trans_pair==node:
+            if len(neighbor.neighbors)>1:
+                new_neighbors.append(neighbor)
+            continue
+
+        # Add new candidate
+        for v in neighbor.neighbors:
+            node.neighbors.append(v)
+
+    # Pruning children nodes
+    node.neighbors = new_neighbors
+    for neighbor in node.neighbors:
+        print node.getVal(), neighbor.getVal()
+        if neighbor.trans_pair==node:
+            continue
+        graphPruning(neighbor, goal_node, visited)

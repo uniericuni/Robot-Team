@@ -36,8 +36,6 @@ LOCKN = 2
 INSTANCE_NUM = 14
 
 # maximum multimodal sampling iteration
-MM_MAX_ITER = 50
-MAX_SAMPLING_TIME = 10
 
 # experiment one field constraint
 STEP = 0.2          # margin
@@ -74,6 +72,20 @@ point_size = x_step * 50.0
 # ROTATION
 # =========================
 ROT_ERR = 0.1
+
+
+
+
+
+
+
+
+# ====================================================================================
+# Sampler
+# ====================================================================================
+MM_MAX_ITER = 2
+MAX_SAMPLING_TIME = 50
+MAX_DEPTH = 10
 
 # ====================================================================================
 # Visualization

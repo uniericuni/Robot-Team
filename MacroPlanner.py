@@ -10,7 +10,6 @@
 with env:
     
     # instantitate single mode sampler
-    # TODO: make mode binary so analytic
     query = [np.array([-5, 0, 20.3]), np.array([5, 0, 20.3])]
     sampler0 =  Sampler(mode=0)
     sampler1 =  Sampler(mode=1)

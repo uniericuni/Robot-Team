@@ -46,7 +46,7 @@ class HomogeneousRobotTeam:
         self.lock_robot = None
         
         # Instantiate the robot team 
-        declareUnlockRobot(self, configs=configs)
+        self.declareUnlockRobot(configs=configs)
 
     # Instantialize homogeneous robots
     def declareUnlockRobot(self, configs=None):

@@ -70,7 +70,7 @@ def astarPlanner(query, env, robot):
 # Outputs:
 #   rtn:   List of np.array, the trajectory of from init to goal.
 # ====================================================================================
-def rotationPlanner(query, env, robot, ee==None):
+def rotationPlanner(query, env, robot, ee=None):
 
     # Input format check
     assert(evn!=None)
@@ -205,23 +205,75 @@ def rotationPlacer(query, env, robot, ee=None):
     return rtn
 
 # ====================================================================================
+# effMultiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
+# ====================================================================================
+def effMultiModalPlanner(   query,
+                            robot_team,
+                            trans_samplers, pr0, pr1 ):
+
+    # Initiate graphs
+    num_of_modes = len(trans_samplers)
+    map_unlock = Graph(query, 0)
+    map_lock = Graph(query, 1)
+    rtn = []
+
+    # Add anchors for several times
+    for i in range(MM_MAX_ITER):
+
+        # Modal sampling
+        rtn_tbl = {map_unlock.init_node:None}
+        for j in range(MAX_SAMPLING_TIME):
+
+            # Sampling for both sub-mode
+            for sampler in trans_samplers:
+                
+                # Get transition mode pair
+                mode0,mode1 = sampler.getTransPair()
+
+                # Make sample
+                sample_pair = sampler.makeSample()
+
+                # Create nodes
+                node0,node1 = nodePair( sample_pair[0],
+                                        sample_pair[1],
+                                        mode0, mode1 )
+
+                # Add nodes to graphs
+                if mode0==UNLOCK:
+                    map_unlock.addNode(node0, pr=pr0)
+                    map_lock.addNode(node1, pr=pr1, anchor=True)
+                else:
+                    map_unlock.addNode(node1, pr=pr0)
+                    map_lock.addNode(node0, pr=pr1, anchor=True)
+
+        # Test connectivity of anchors
+        print isConnect(map_unlock.init_node, map_unlock.goal_node, rtn_tbl)
+        graphPruning(map_unlock.init_node, map_unlock.goal_node, {})
+
+    return map_unlock.init_node,map_unlock.goal_node
+
+# ====================================================================================
+# effMultiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
+# ====================================================================================
+
+# ====================================================================================
 # multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
 # ====================================================================================
 def multiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
 
-    # initiate adjacent matrix to store connections and list of graph to store connection in one mode
+    # Initiate adjacent matrix to store connections and list of graph to store connection in one mode
     num_of_modes = len(modal_samplers)
     transition_map = [[{}]*num_of_modes for _ in range(num_of_modes)]
     maps = [Graph(query, 0)]
     for i in range(1,num_of_modes):
          maps.append( Graph(query,i) )
 
-    # connecting modes
+    # Connecting modes
     rtn = False
     for i in range(MM_MAX_ITER):                            # test M times
         for j in range(MAX_SAMPLING_TIME):                  # sampling N times
 
-            # sample each mode
+            # Modal Sampler
             for k,sampler in enumerate(modal_samplers):
 
                 # sample single configs for the BASE for UNLCOK
