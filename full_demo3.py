@@ -27,7 +27,7 @@ if __name__ == "__main__":
     env.SetCollisionChecker(collisionChecker)
 
     env.Reset()
-    env.Load('data/robotTeamTest.env.xml')
+    env.Load('data/robotTeamTest2.env.xml')
     time.sleep(0.1)
     final_task = [ np.array([8.5, (i%14)*1.2-6.5, 20.3]) for i in range(INSTANCE_NUM) ]
 

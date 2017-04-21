@@ -94,9 +94,16 @@ class Sampler:
 def isRejected(pos, pos_ref=None, mode=UNLOCK):
 
     # unlocked mode
+    # env2
+    '''
+    if mode==UNLOCK:
+        return False
+    '''
+    # env1
     if mode==UNLOCK:
         return  not ((pos[0]<X_MAX1 and pos[0]>X_MIN1 and pos[1]<Y_MAX and pos[1]>Y_MIN) or 
                      (pos[0]<X_MAX2 and pos[0]>X_MIN2 and pos[1]<Y_MAX and pos[1]>Y_MIN))
+
 
     # locked mode
     elif mode==LOCK0 or mode==LOCKN:

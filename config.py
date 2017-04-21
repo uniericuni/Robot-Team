@@ -38,6 +38,7 @@ INSTANCE_NUM = 14
 # maximum multimodal sampling iteration
 
 # experiment one field constraint
+# exp1
 STEP = 0.2          # margin
 X_MIN1 = -10 + STEP
 X_MAX1 = -2.2
@@ -46,6 +47,18 @@ X_MAX2 = 10 - STEP
 Y_MIN = -10 + STEP
 Y_MAX = 10 - STEP
 Z = 20.3
+
+# exp2
+'''
+STEP = 0.2          # margin
+X_MIN1 = -10 + STEP
+X_MAX1 = 10 - STEP
+X_MIN2 = X_MIN1
+X_MAX2 = X_MAX1
+Y_MIN = -10 + STEP
+Y_MAX = 10 - STEP
+Z = 20.3
+'''
 
 # cliff length
 CLIFF = 4
@@ -76,22 +89,18 @@ ROT_ERR = 0.1
 
 
 
-
-
-
-
 # ====================================================================================
 # Sampler
 # ====================================================================================
 MM_MAX_ITER = 1
-MAX_SAMPLING_TIME = 40
+MAX_SAMPLING_TIME = 60
 MAX_DEPTH = 10
 
 # ====================================================================================
 # Visualization
 # ====================================================================================
 #TIME_DELTA = 0.02
-TIME_DELTA = 0.004
+TIME_DELTA = 0.02
 
 # ====================================================================================
 # Planner
