@@ -20,3 +20,5 @@
 1. Sampler.py
 2. config.py
 3. full_demo2.py
+
+- [Demo Video](https://youtu.be/1dQyMDnteJ8)

@@ -245,8 +245,8 @@ def effMultiModalPlanner(   query,
         isConnected = isConnect(map_unlock.init_node, map_unlock.goal_node, rtn_tbl)
         graphPruning([map_unlock.init_node], map_unlock.goal_node, {map_unlock.init_node:True}, anchors)
 
-    # return map_unlock.init_node,map_unlock.goal_node, isConnected
-    return map_unlock.init_node,map_unlock.goal_node
+    return map_unlock.init_node,map_unlock.goal_node, isConnected
+    # return map_unlock.init_node,map_unlock.goal_node
 
 # ====================================================================================
 # effMultiModalPlanner(query, robot_team, modal_samplers, trans_samplers):
